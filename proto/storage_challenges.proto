@@ -1,0 +1,15 @@
+// Copyright (c) 2021-2021 The Pastel Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+syntax = "proto3";
+
+option go_package = "github.com/pastelnetwork/storage-challenges/application/grpc;grpc";
+
+package storagechallenges;
+
+import "storage_challenges_dto.proto";
+
+service StorageChallenge {
+    rpc StorageChallenge(dto.StorageChallengeRequest) returns(dto.StorageChallengeReply);
+    rpc VerifyStorageChallenge(dto.VerifyStorageChallengeRequest) returns(dto.VerifyStorageChallengeReply);
+}
