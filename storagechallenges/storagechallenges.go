@@ -1,7 +1,6 @@
 package storagechallenges
 
 import (
-	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,10 +16,10 @@ import (
 
 	"github.com/karrick/godirwalk"
 	"github.com/mkmik/argsort"
+	"github.com/pastelnetwork/storage-challenges/external/storage"
 	"github.com/pastelnetwork/storage-challenges/utils/file"
 	"github.com/pastelnetwork/storage-challenges/utils/helper"
 	"golang.org/x/crypto/sha3"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -69,7 +68,7 @@ type XOR_Distance struct {
 }
 
 func GetXorDistancesFromDb() []XOR_Distance {
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 200})
+	db := storage.GetStore().GetDB()
 	var xor_distances_slice []XOR_Distance
 	_ = db.Table("xor_distances").Select("*").Find(&xor_distances_slice)
 	return xor_distances_slice
@@ -117,7 +116,7 @@ func sliceContainsString(s []string, str string) bool {
 	return false
 }
 
-func AddXorDistanceMatrixToDb(pastel_masternode_ids []string, raptorq_symbol_file_hashes []string, xor_distance_matrix [][]uint64) {
+func AddXorDistanceMatrixToDb(pastel_masternode_ids []string, raptorq_symbol_file_hashes []string, xor_distance_matrix [][]uint64) error {
 	defer ExecutionDuration(TrackTime("AddXorDistanceMatrixToDb"))
 	existing_xor_distances_slice := GetXorDistancesFromDb()
 	slice_of_existing_xor_distance_ids := make([]string, len(existing_xor_distances_slice))
@@ -140,23 +139,45 @@ func AddXorDistanceMatrixToDb(pastel_masternode_ids []string, raptorq_symbol_fil
 			}
 		}
 	}
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 200})
-	_ = db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Xor_distance_id"}}, UpdateAll: true}).Create(&IncrementalXorDistanceSliceOfStructs)
+	db := storage.GetStore().GetDB()
+	tx := db.Begin()
+	var err error
+	defer func() {
+		if err != nil {
+			log.Println("ERROR: ", err)
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+	err = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Xor_distance_id"}}, UpdateAll: true}).Create(&IncrementalXorDistanceSliceOfStructs).Error
+	return err
 }
 
 func DetermineWhichMasternodesAreResponsibleForWhichFileHashes(number_of_challenge_replicas int) []XOR_Distance {
-	db, _ := sql.Open("sqlite3", "go_pastel_storage_challenges.sqlite")
-	defer db.Close()
+	db := storage.GetStore().GetDB()
+	// TODO: improve subquery to use join instead, would be more faster, the cose to use this is too big
+	// 	QUERY PLAN
+	// |--CO-ROUTINE 2
+	// |  |--CO-ROUTINE 4
+	// |  |  |--SCAN TABLE xor_distances
+	// |  |  `--USE TEMP B-TREE FOR ORDER BY
+	// |  `--SCAN SUBQUERY 4
+	// `--SCAN SUBQUERY 2
+	//
 	count_query_statement := "SELECT count(*) FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances)) WHERE rnk <= %v"
 	count_query_statement_prepared := fmt.Sprintf(count_query_statement, number_of_challenge_replicas)
 	var count_of_results int
-	err := db.QueryRow(count_query_statement_prepared).Scan(&count_of_results)
+
+	err := db.Raw(count_query_statement_prepared).Scan(&count_of_results).Error
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// TODO: improve same as above
 	query_statement := "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances)) WHERE rnk <= %v"
 	query_statement_prepared := fmt.Sprintf(query_statement, number_of_challenge_replicas)
-	rows, _ := db.Query(query_statement_prepared)
+	rows, _ := db.Raw(query_statement_prepared).Rows()
 	MasternodeToFileHashResponsibilityStructs := make([]XOR_Distance, 0)
 	defer rows.Close()
 	for rows.Next() {
@@ -178,11 +199,10 @@ func DetermineWhichMasternodesAreResponsibleForWhichFileHashes(number_of_challen
 }
 
 func GetCurrentListsOfMasternodeIdsAndFileHashesFromDb() ([]string, []string) {
-	db, _ := sql.Open("sqlite3", "go_pastel_storage_challenges.sqlite")
-	defer db.Close()
+	db := storage.GetStore().GetDB()
 	slice_of_masternode_ids := make([]string, 0)
 	query_statement1 := "SELECT DISTINCT masternode_id FROM xor_distances"
-	rows1, _ := db.Query(query_statement1)
+	rows1, _ := db.Raw(query_statement1).Rows()
 	defer rows1.Close()
 	for rows1.Next() {
 		var masternode_id string
@@ -191,7 +211,7 @@ func GetCurrentListsOfMasternodeIdsAndFileHashesFromDb() ([]string, []string) {
 	}
 	slice_of_file_hashes := make([]string, 0)
 	query_statement2 := "SELECT DISTINCT file_hash FROM xor_distances"
-	rows2, _ := db.Query(query_statement2)
+	rows2, _ := db.Raw(query_statement2).Rows()
 	defer rows2.Close()
 	for rows2.Next() {
 		var file_hash string
@@ -202,13 +222,12 @@ func GetCurrentListsOfMasternodeIdsAndFileHashesFromDb() ([]string, []string) {
 }
 
 func GetSliceOfFilePathsFromSliceOfFileHashes(slice_of_file_hashes []string) []string {
-	db, _ := sql.Open("sqlite3", "go_pastel_storage_challenges.sqlite")
-	defer db.Close()
+	db := storage.GetStore().GetDB()
 	slice_of_file_paths := make([]string, 0)
 	for _, current_file_hash := range slice_of_file_hashes {
 		query_statement := "SELECT original_file_path FROM symbol_files WHERE file_hash = \"%v\""
 		query_statement_prepared := fmt.Sprintf(query_statement, current_file_hash)
-		rows, _ := db.Query(query_statement_prepared)
+		rows, _ := db.Raw(query_statement_prepared).Rows()
 		defer rows.Close()
 		for rows.Next() {
 			var current_file_path string
@@ -222,12 +241,11 @@ func GetSliceOfFilePathsFromSliceOfFileHashes(slice_of_file_hashes []string) []s
 }
 
 func GetNClosestMasternodeIdsToAGivenFileHashUsingDb(n int, file_hash_string string) []string {
-	db, _ := sql.Open("sqlite3", "go_pastel_storage_challenges.sqlite")
-	defer db.Close()
+	db := storage.GetStore().GetDB()
 	slice_of_top_n_closest_masternode_ids := make([]string, 0)
 	query_statement := "SELECT masternode_id FROM xor_distances WHERE file_hash=\"%s\" ORDER BY xor_distance ASC LIMIT %d"
 	query_statement_prepared := fmt.Sprintf(query_statement, file_hash_string, n)
-	rows, _ := db.Query(query_statement_prepared)
+	rows, _ := db.Raw(query_statement_prepared).Rows()
 	defer rows.Close()
 	for rows.Next() {
 		var masternode_id string
@@ -322,7 +340,19 @@ type SymbolFiles struct {
 
 func AddFilesToDb(slice_of_input_file_paths []string) {
 	defer ExecutionDuration(TrackTime("AddFilesToDb"))
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 3000})
+	db := storage.GetStore().GetDB()
+	tx := db.Begin()
+	var err error
+	defer func() {
+		if err != nil {
+			log.Println("ERROR: ", err)
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+	var listSymbolfiles = make([]SymbolFiles, 0)
+	// use batch query instead: INSERT INTO symbol_files (col1, col2, col3) VALUES (?, ?, ?), (?, ?, ?) on conflict do update set col1=excluded.col1, col2=excluded.col2, col3=excluded.col3;
 	for _, current_input_file_path := range slice_of_input_file_paths {
 		current_file_hash, _ := file.GetHashFromFilePath(current_input_file_path)
 		var current_symbolfile_struct SymbolFiles
@@ -332,8 +362,9 @@ func AddFilesToDb(slice_of_input_file_paths []string) {
 		current_symbolfile_struct.File_length_in_bytes = uint(current_file_size)
 		current_symbolfile_struct.Total_challenges_for_file = uint(0)
 		current_symbolfile_struct.Original_file_path = current_input_file_path
-		_ = db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "File_hash"}}, UpdateAll: true}).Create(&current_symbolfile_struct)
+		listSymbolfiles = append(listSymbolfiles, current_symbolfile_struct)
 	}
+	err = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "File_hash"}}, UpdateAll: true}).Create(&listSymbolfiles).Error
 }
 
 type Masternodes struct {
@@ -350,21 +381,43 @@ type Masternodes struct {
 }
 
 func AddMasternodesToDb(slice_of_pastel_masternode_ids []string) {
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 100})
+	db := storage.GetStore().GetDB()
+	var err error
+	tx := db.Begin()
+	defer func() {
+		if err != nil {
+			log.Println("ERROR: ", err)
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+
+	var list_masternodes = make([]Masternodes, 0)
 	for _, current_masternode_id := range slice_of_pastel_masternode_ids {
 		var current_masternode_struct Masternodes
 		current_masternode_struct.Masternode_id = current_masternode_id
 		current_masternode_struct.Masternode_ip_address = "127.0.0.1"
-		db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Masternode_id"}}, UpdateAll: true}).Create(&current_masternode_struct)
+		list_masternodes = append(list_masternodes, current_masternode_struct)
 	}
+
+	err = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Masternode_id"}}, UpdateAll: true}).Create(&list_masternodes).Error
 }
 
 func RemoveMasternodesFromDb(slice_of_pastel_masternode_ids []string) {
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 100})
-	for _, current_masternode_id := range slice_of_pastel_masternode_ids {
-		var current_masternode Masternodes
-		db.Unscoped().Delete(&current_masternode, "Masternode_id = ? ", current_masternode_id)
-	}
+	db := storage.GetStore().GetDB()
+	var err error
+	tx := db.Begin()
+	defer func() {
+		if err != nil {
+			log.Println("ERROR: ", err)
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+
+	err = tx.Unscoped().Delete(&Masternodes{}, "Masternode_id in (?) ", slice_of_pastel_masternode_ids).Error
 }
 
 type PastelBlocks struct {
@@ -381,13 +434,26 @@ type PastelBlocks struct {
 }
 
 func AddBlocksToDb(slice_of_block_hashes []string) {
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 1000})
+	db := storage.GetStore().GetDB()
+	var err error
+	tx := db.Begin()
+	defer func() {
+		if err != nil {
+			log.Println("ERROR: ", err)
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+
+	var list_pastel_blocks = make([]PastelBlocks, 0)
 	for idx, current_block_hash := range slice_of_block_hashes {
 		var current_pastel_block PastelBlocks
 		current_pastel_block.Block_hash = current_block_hash
 		current_pastel_block.Block_number = uint(idx)
-		_ = db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Block_hash"}}, UpdateAll: true}).Create(&current_pastel_block)
+		list_pastel_blocks = append(list_pastel_blocks, current_pastel_block)
 	}
+	err = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Block_hash"}}, UpdateAll: true}).Create(&list_pastel_blocks).Error
 }
 
 func RemoveGlob(path string) (err error) {
@@ -462,7 +528,7 @@ func ensureDir(dirName string) error {
 }
 
 func GetFilePathFromFileHashUsingDb(file_hash_string string) string {
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 1000})
+	db := storage.GetStore().GetDB()
 	var file_path string
 	row := db.Table("symbol_files").Where("file_hash = ?", file_hash_string).Select("original_file_path").Row()
 	row.Scan(&file_path)
@@ -676,8 +742,21 @@ type Challenges struct {
 }
 
 func UpdateDbWithMessage(storage_challenge_message ChallengeMessages) {
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 100})
-	db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Message_id"}}, UpdateAll: true}).Create(&storage_challenge_message)
+	db := storage.GetStore().GetDB()
+	var err error
+	tx := db.Begin()
+	defer func() {
+		if err != nil {
+			log.Println("ERROR: ", err)
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+	err = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Message_id"}}, UpdateAll: true}).Create(&storage_challenge_message).Error
+	if err != nil {
+		return
+	}
 	challenge_id_input_data := storage_challenge_message.Challenging_masternode_id + storage_challenge_message.Responding_masternode_id + storage_challenge_message.File_hash_to_challenge + fmt.Sprint(storage_challenge_message.Challenge_slice_start_index) + fmt.Sprint(storage_challenge_message.Challenge_slice_end_index) + storage_challenge_message.Datetime_challenge_sent
 	challenge_id := helper.GetHashFromString(challenge_id_input_data)
 	var storage_challenge Challenges
@@ -693,7 +772,7 @@ func UpdateDbWithMessage(storage_challenge_message ChallengeMessages) {
 	storage_challenge.Challenge_slice_start_index = storage_challenge_message.Challenge_slice_end_index
 	storage_challenge.Challenge_slice_end_index = storage_challenge_message.Challenge_slice_end_index
 	storage_challenge.Challenge_slice_correct_hash = storage_challenge_message.Challenge_slice_correct_hash
-	_ = db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Challenge_id"}}, UpdateAll: true}).Create(&storage_challenge)
+	err = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Challenge_id"}}, UpdateAll: true}).Create(&storage_challenge).Error
 }
 
 func GetStorageChallengeSliceIndices(total_data_length_in_bytes uint64, file_hash_string string, block_hash_string string, challenging_masternode_id string) (int, int) {
@@ -812,25 +891,55 @@ func UpdateMasternodeStatsInDb() {
 	total_challenges_correct_but_too_slow := 0
 	total_challenges_never_responded_to := 0
 	challenge_response_success_rate_pct := float32(0.0)
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 100})
+
+	db := storage.GetStore().GetDB()
+	var err error
+	tx := db.Begin()
+	defer func() {
+		if err != nil {
+			log.Println("ERROR: ", err)
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+
 	for _, current_masternode_id := range slice_of_masternode_ids {
 		var challenges_issued []ChallengeMessages
-		db.Where("responding_masternode_id = ? AND message_type = ?", current_masternode_id, "storage_challenge_issuance_message").Find(&challenges_issued)
+		err = tx.Where("responding_masternode_id = ? AND message_type = ?", current_masternode_id, "storage_challenge_issuance_message").Find(&challenges_issued).Error
+		if err != nil {
+			return
+		}
 		total_challenges_issued = len(challenges_issued)
 		var challenges_responded_to []ChallengeMessages
-		db.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Responded").Find(&challenges_responded_to)
+		err = tx.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Responded").Find(&challenges_responded_to).Error
+		if err != nil {
+			return
+		}
 		total_challenges_responded_to = len(challenges_responded_to)
 		var challenges_correct []ChallengeMessages
-		db.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Successful response").Find(&challenges_correct)
+		err = tx.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Successful response").Find(&challenges_correct).Error
+		if err != nil {
+			return
+		}
 		total_challenges_correct = len(challenges_correct)
 		var challenges_incorrect []ChallengeMessages
-		db.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Failed because of incorrect response").Find(&challenges_incorrect)
+		err = tx.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Failed because of incorrect response").Find(&challenges_incorrect).Error
+		if err != nil {
+			return
+		}
 		total_challenges_incorrect = len(challenges_incorrect)
 		var challenges_correct_but_too_slow []ChallengeMessages
-		db.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Failed--Correct but response was too slow").Find(&challenges_correct_but_too_slow)
+		err = tx.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Failed--Correct but response was too slow").Find(&challenges_correct_but_too_slow).Error
+		if err != nil {
+			return
+		}
 		total_challenges_correct_but_too_slow = len(challenges_correct_but_too_slow)
 		var challenges_never_responded_to []ChallengeMessages
-		db.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Failed because response never arrived").Find(&challenges_never_responded_to)
+		err = tx.Where("responding_masternode_id = ? AND challenge_status = ?", current_masternode_id, "Failed because response never arrived").Find(&challenges_never_responded_to).Error
+		if err != nil {
+			return
+		}
 		total_challenges_never_responded_to = len(challenges_never_responded_to)
 		if total_challenges_issued > 0 {
 			challenge_response_success_rate_pct = float32(total_challenges_correct) / float32(total_challenges_issued)
@@ -845,7 +954,7 @@ func UpdateMasternodeStatsInDb() {
 		current_masternode_update.Total_challenges_correct_but_too_slow = uint(total_challenges_correct_but_too_slow)
 		current_masternode_update.Total_challenges_never_responded_to = uint(total_challenges_never_responded_to)
 		current_masternode_update.Challenge_response_success_rate_pct = challenge_response_success_rate_pct
-		_ = db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Masternode_id"}}, UpdateAll: true}).Create(&current_masternode_update)
+		err = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Masternode_id"}}, UpdateAll: true}).Create(&current_masternode_update).Error
 	}
 }
 
@@ -858,25 +967,36 @@ func UpdateBlockStatsInDb(slice_of_block_hashes []string) {
 	total_challenges_correct_but_too_slow := 0
 	total_challenges_never_responded_to := 0
 	challenge_response_success_rate_pct := float32(0.0)
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 100})
+	db := storage.GetStore().GetDB()
+	var err error
+	tx := db.Begin()
+	defer func() {
+		if err != nil {
+			log.Println("ERROR: ", err)
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+
 	for _, current_block_hash := range slice_of_block_hashes {
 		var challenges_issued []ChallengeMessages
-		db.Where("block_hash_when_challenge_sent = ? AND message_type = ?", current_block_hash, "storage_challenge_issuance_message").Find(&challenges_issued)
+		err = tx.Where("block_hash_when_challenge_sent = ? AND message_type = ?", current_block_hash, "storage_challenge_issuance_message").Find(&challenges_issued).Error
 		total_challenges_issued = len(challenges_issued)
 		var challenges_responded_to []ChallengeMessages
-		db.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Responded").Find(&challenges_responded_to)
+		err = tx.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Responded").Find(&challenges_responded_to).Error
 		total_challenges_responded_to = len(challenges_responded_to)
 		var challenges_correct []ChallengeMessages
-		db.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Successful response").Find(&challenges_correct)
+		err = tx.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Successful response").Find(&challenges_correct).Error
 		total_challenges_correct = len(challenges_correct)
 		var challenges_incorrect []ChallengeMessages
-		db.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Failed because of incorrect response").Find(&challenges_incorrect)
+		err = tx.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Failed because of incorrect response").Find(&challenges_incorrect).Error
 		total_challenges_incorrect = len(challenges_incorrect)
 		var challenges_correct_but_too_slow []ChallengeMessages
-		db.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Failed--Correct but response was too slow").Find(&challenges_correct_but_too_slow)
+		err = tx.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Failed--Correct but response was too slow").Find(&challenges_correct_but_too_slow).Error
 		total_challenges_correct_but_too_slow = len(challenges_correct_but_too_slow)
 		var challenges_never_responded_to []ChallengeMessages
-		db.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Failed because response never arrived").Find(&challenges_never_responded_to)
+		err = tx.Where("block_hash_when_challenge_sent = ? AND challenge_status = ?", current_block_hash, "Failed because response never arrived").Find(&challenges_never_responded_to).Error
 		total_challenges_never_responded_to = len(challenges_never_responded_to)
 		if total_challenges_issued > 0 {
 			challenge_response_success_rate_pct = float32(total_challenges_correct) / float32(total_challenges_issued)
@@ -891,20 +1011,22 @@ func UpdateBlockStatsInDb(slice_of_block_hashes []string) {
 		current_block_update.Total_challenges_correct_but_too_slow = uint(total_challenges_correct_but_too_slow)
 		current_block_update.Total_challenges_never_responded_to = uint(total_challenges_never_responded_to)
 		current_block_update.Challenge_response_success_rate_pct = challenge_response_success_rate_pct
-		_ = db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Block_hash"}}, UpdateAll: true}).Create(&current_block_update)
+		err = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "Block_hash"}}, UpdateAll: true}).Create(&current_block_update).Error
 	}
 }
 
 func RespondToStorageChallenges(responding_masternode_id string, rqsymbol_file_storage_data_folder_path string, current_block_hash string) []string {
 	slice_of_message_ids := make([]string, 0)
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 100})
+	db := storage.GetStore().GetDB()
 	var pending_challenges []Challenges
+	// TODO: handle query error
 	db.Where("responding_masternode_id = ? AND challenge_status = ?", responding_masternode_id, "Pending").Find(&pending_challenges)
 	slice_of_pending_challenge_ids := make([]string, len(pending_challenges))
 	for idx, current_pending_challenge := range pending_challenges {
 		slice_of_pending_challenge_ids[idx] = current_pending_challenge.Challenge_id
 	}
 	var pending_challenge_messages []ChallengeMessages
+	// TODO: handle query error
 	db.Where("message_type = ? AND challenge_id in ?", "storage_challenge_issuance_message", slice_of_pending_challenge_ids).Find(&pending_challenge_messages)
 
 	for _, current_challenge_message := range pending_challenge_messages {
@@ -936,7 +1058,7 @@ func RespondToStorageChallenges(responding_masternode_id string, rqsymbol_file_s
 
 func VerifyStorageChallengeResponses(challenging_masternode_id string, rqsymbol_file_storage_data_folder_path string, max_seconds_to_respond_to_storage_challenge int) []string {
 	slice_of_message_ids := make([]string, 0)
-	db, _ := gorm.Open(sqlite.Open("go_pastel_storage_challenges.sqlite"), &gorm.Config{CreateBatchSize: 100})
+	db := storage.GetStore().GetDB()
 	var responded_challenges []Challenges
 	db.Where("challenging_masternode_id = ? AND challenge_status = ?", challenging_masternode_id, "Responded").Find(&responded_challenges)
 	slice_of_responded_challenge_ids := make([]string, len(responded_challenges))
