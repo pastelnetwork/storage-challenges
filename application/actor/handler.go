@@ -1,62 +1,56 @@
 package actor
 
 import (
+	"context"
 	"log"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/pastelnetwork/storage-challenges/application/dto"
+	"github.com/pastelnetwork/storage-challenges/domain/service"
+	"github.com/pastelnetwork/storage-challenges/external/storage"
+	appcontext "github.com/pastelnetwork/storage-challenges/utils/context"
 )
 
-var (
-	rootContext *actor.RootContext
-	remoter     *remote.Remote
-)
-
-func init() {
-	system := actor.NewActorSystem()
-	rootContext = system.Root
-	remoteConfig := remote.Configure("localhost", 8000)
-	remoter = remote.NewRemote(system, remoteConfig)
-	remoter.Start()
-}
-
-func StartStorageChallengeHandler() *actor.PID {
-	props := actor.PropsFromProducer(newStorageChallengeActor)
-	pid, _ := rootContext.SpawnNamed(props, "storage-challenge")
-	return pid
-}
-
-func StopActor(pid *actor.PID) {
-	rootContext.Stop(pid)
-}
-
-func GracefulStop() {
-	remoter.Shutdown(true)
-}
-
-func newStorageChallengeActor() actor.Actor {
-	return &storageChallengeActor{}
+func NewStorageChallengeActor(domainService service.StorageChallenge, db storage.Store) actor.Actor {
+	return &storageChallengeActor{service: domainService, db: db}
 }
 
 type storageChallengeActor struct {
-	log.Logger //update use another logger provider
-	// service    domain.Service
+	service service.StorageChallenge
+	db      storage.Store
 }
 
-func (s *storageChallengeActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
+func (s *storageChallengeActor) Receive(actorCtx actor.Context) {
+	// Begin transaction, inject to context to go through main process
+	var dbTx = s.db.GetDB().Begin()
+	var commit bool
+	defer func() {
+		if !commit {
+			dbTx.Rollback()
+			return
+		}
+		dbTx.Commit()
+	}()
+
+	var ctx = appcontext.FromContext(context.Background()).WithActorContext(actorCtx).WithDBTx(dbTx)
+	switch msg := actorCtx.Message().(type) {
 	case *dto.StorageChallengeRequest:
-		s.StorageChallenge(context, msg)
+		_, err := s.StorageChallenge(ctx, msg)
+		if err == nil {
+			commit = true
+		}
 	case *dto.VerifyStorageChallengeRequest:
-		s.VerifyStorageChallenge(context, msg)
+		_, err := s.VerifyStorageChallenge(ctx, msg)
+		if err == nil {
+			commit = true
+		}
 	default:
-		log.Printf("Action hot hanled %#v", msg)
+		log.Printf("Action not hanled %#v", msg)
 		// TODO: response with unhandled notice
 	}
 }
 
-func (s *storageChallengeActor) StorageChallenge(ctx actor.Context, req *dto.StorageChallengeRequest) (resp *dto.StorageChallengeReply, err error) {
+func (s *storageChallengeActor) StorageChallenge(ctx appcontext.Context, req *dto.StorageChallengeRequest) (resp *dto.StorageChallengeReply, err error) {
 	log.Printf("StorageChallenge handler")
 	// validate request body
 	es := validateStorageChallengeData(req.GetData(), "Data")
@@ -66,12 +60,12 @@ func (s *storageChallengeActor) StorageChallenge(ctx actor.Context, req *dto.Sto
 	}
 
 	// calling domain service to process bussiness logics
-	// service.StorageChallenge()
+	err = s.service.ProcessStorageChallenge(ctx, req.GetData())
 	// TODO: send response validation failed to challenger and verifyer: get address of challenger and verifyer, send message by ctx.Send(challengeraddressPID, err)
-	return &dto.StorageChallengeReply{Data: req.GetData()}, nil
+	return &dto.StorageChallengeReply{Data: req.GetData()}, err
 }
 
-func (s *storageChallengeActor) VerifyStorageChallenge(ctx actor.Context, req *dto.VerifyStorageChallengeRequest) (resp *dto.VerifyStorageChallengeReply, err error) {
+func (s *storageChallengeActor) VerifyStorageChallenge(ctx appcontext.Context, req *dto.VerifyStorageChallengeRequest) (resp *dto.VerifyStorageChallengeReply, err error) {
 	log.Printf("VerifyStorageChallenge handler")
 	// validate request body
 	es := validateStorageChallengeData(req.GetData(), "Data")
@@ -79,7 +73,7 @@ func (s *storageChallengeActor) VerifyStorageChallenge(ctx actor.Context, req *d
 		return &dto.VerifyStorageChallengeReply{Data: req.GetData()}, err
 	}
 	// calling domain service to process bussiness logics
-	// service.VerifyStorageChallenge()
+	err = s.service.VerifyStorageChallenge(ctx, req.GetData())
 	// TODO: send response validation failed to challenger and verifyer: get address of challenger and verifyer, send message by ctx.Send(challengeraddressPID, err)
-	return &dto.VerifyStorageChallengeReply{Data: req.GetData()}, nil
+	return &dto.VerifyStorageChallengeReply{Data: req.GetData()}, err
 }
