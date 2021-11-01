@@ -60,7 +60,7 @@ func (s *storageChallengeActor) StorageChallenge(ctx appcontext.Context, req *dt
 	}
 
 	// calling domain service to process bussiness logics
-	err = s.service.ProcessStorageChallenge(ctx, req.GetData())
+	err = s.service.ProcessStorageChallenge(ctx, mapChallengeMessage(req.GetData()))
 	// TODO: send response validation failed to challenger and verifyer: get address of challenger and verifyer, send message by ctx.Send(challengeraddressPID, err)
 	return &dto.StorageChallengeReply{Data: req.GetData()}, err
 }
@@ -73,7 +73,7 @@ func (s *storageChallengeActor) VerifyStorageChallenge(ctx appcontext.Context, r
 		return &dto.VerifyStorageChallengeReply{Data: req.GetData()}, err
 	}
 	// calling domain service to process bussiness logics
-	err = s.service.VerifyStorageChallenge(ctx, req.GetData())
+	err = s.service.VerifyStorageChallenge(ctx, mapChallengeMessage(req.GetData()))
 	// TODO: send response validation failed to challenger and verifyer: get address of challenger and verifyer, send message by ctx.Send(challengeraddressPID, err)
 	return &dto.VerifyStorageChallengeReply{Data: req.GetData()}, err
 }

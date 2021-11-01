@@ -1,21 +1,32 @@
 package model
 
+import "github.com/pastelnetwork/storage-challenges/application/dto"
+
+var (
+	MessageType_STORAGE_CHALLENGE_ISSUANCE_MESSAGE     = dto.MessageType_STORAGE_CHALLENGE_ISSUANCE_MESSAGE.String()
+	MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE     = dto.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE.String()
+	MessageType_STORAGE_CHALLENGE_VERIFICATION_MESSAGE = dto.MessageType_STORAGE_CHALLENGE_VERIFICATION_MESSAGE.String()
+
+	Status_PENDING   = dto.Status_PENDING.String()
+	Status_RESPONDED = dto.Status_RESPONDED.String()
+)
+
 type ChallengeMessages struct {
-	Message_id                      string
-	Message_type                    string
-	Challenge_status                string
-	Datetime_challenge_sent         string
-	Datetime_challenge_responded_to string
-	Datetime_challenge_verified     string
-	Block_hash_when_challenge_sent  string
-	Challenging_masternode_id       string
-	Responding_masternode_id        string
-	File_hash_to_challenge          string
-	Challenge_slice_start_index     uint64
-	Challenge_slice_end_index       uint64
-	Challenge_slice_correct_hash    string
-	Challenge_response_hash         string
-	Challenge_id                    string
+	MessageID                     string
+	MessageType                   string
+	ChallengeStatus               string
+	TimestampChallengeSent        int64
+	TimestampChallengeRespondedTo int64
+	TimestampChallengeVerified    int64
+	BlockHashWhenChallengeSent    string
+	ChallengingMasternodeId       string
+	RespondingMasternodeId        string
+	FileHashToChallenge           string
+	ChallengeSliceStartIndex      uint64
+	ChallengeSliceEndIndex        uint64
+	ChallengeSliceCorrectHash     string
+	ChallengeResponseHash         string
+	ChallengeId                   string
 }
 
 type Challenges struct {

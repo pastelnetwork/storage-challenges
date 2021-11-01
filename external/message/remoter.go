@@ -7,18 +7,13 @@ import (
 	appcontext "github.com/pastelnetwork/storage-challenges/utils/context"
 )
 
-type ActorProperties struct {
-	Address, Name, Kind string
-}
-
 type Remoter struct {
 	remoter *remote.Remote
 	context *actor.RootContext
 	mapPID  map[string]*actor.PID
 }
 
-func (r *Remoter) Send(ctx appcontext.Context, properties ActorProperties, message proto.Message) error {
-	pid := actor.NewPID(properties.Address, properties.Name)
+func (r *Remoter) Send(ctx appcontext.Context, pid *actor.PID, message proto.Message) error {
 	if actorContext := ctx.GetActorContext(); actorContext != nil {
 		actorContext.Send(pid, message)
 	} else {
@@ -27,9 +22,8 @@ func (r *Remoter) Send(ctx appcontext.Context, properties ActorProperties, messa
 	return nil
 }
 
-func (r *Remoter) SendMany(ctx appcontext.Context, properties []ActorProperties, message proto.Message) error {
-	clients := NewActorPIDSet(properties)
-	for _, client := range clients.Values() {
+func (r *Remoter) SendMany(ctx appcontext.Context, pidSet *actor.PIDSet, message proto.Message) error {
+	for _, client := range pidSet.Values() {
 		if actorContext := ctx.GetActorContext(); actorContext != nil {
 			actorContext.Send(client, message)
 		} else {
@@ -81,12 +75,4 @@ func NewRemoter(system *actor.ActorSystem, cfg Config) *Remoter {
 		context: system.Root,
 		mapPID:  make(map[string]*actor.PID),
 	}
-}
-
-func NewActorPIDSet(properties []ActorProperties) *actor.PIDSet {
-	var pids = make([]*actor.PID, 0)
-	for _, p := range properties {
-		pids = append(pids, actor.NewPID(p.Address, p.Kind))
-	}
-	return actor.NewPIDSet(pids...)
 }
