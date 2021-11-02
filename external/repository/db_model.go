@@ -38,5 +38,5 @@ type SymbolFiles struct {
 
 type XOR_Distance struct {
 	*CommonModel
-	*model.XOR_Distance
+	*model.XORDistance
 }

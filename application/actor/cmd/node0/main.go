@@ -16,7 +16,7 @@ import (
 
 func main() {
 	remoter := message.NewRemoter(actor.NewActorSystem(), message.Config{Remoter: message.Address{Host: "localhost", Port: 9000}})
-	dommainService := service.NewStorageChallenge(remoter, nil)
+	dommainService := service.NewStorageChallenge(service.Config{Remoter: remoter})
 	store, err := storage.NewStore(storage.Config{})
 	if err != nil {
 		log.Fatal("storage.NewStore", err)
@@ -28,11 +28,7 @@ func main() {
 	}
 	remoter.Start()
 	defer remoter.GracefulStop()
-	err = remoter.Send(appcontext.FromContext(context.Background()), message.ActorProperties{
-		Address: "localhost:9001",
-		Name:    "storage-challenge",
-		Kind:    "storage-challenge",
-	}, &dto.StorageChallengeRequest{Data: &dto.StorageChallengeData{
+	err = remoter.Send(appcontext.FromContext(context.Background()), actor.NewPID("localhost:9001", "storage-challenge"), &dto.StorageChallengeRequest{Data: &dto.StorageChallengeData{
 		ChallengeId:             "test-challenge-id",
 		ChallengingMasternodeId: "test-challenging-masternode-id",
 		MessageId:               "test-message-id",

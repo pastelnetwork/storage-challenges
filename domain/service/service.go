@@ -8,18 +8,20 @@ import (
 )
 
 type Config struct {
-	Remoter      *message.Remoter
-	Repository   repository.Repository
-	MasterNodeID string
-	PastelClient pastel.Client
+	Remoter                               *message.Remoter
+	Repository                            repository.Repository
+	MasterNodeID                          string
+	PastelClient                          pastel.Client
+	MaxSecondsToRespondToStorageChallenge int64
 }
 
 type storageChallenge struct {
-	remoter       *message.Remoter
-	repository    repository.Repository
-	domainActorID *actor.PID
-	nodeID        string
-	pclient       pastel.Client
+	remoter                               *message.Remoter
+	repository                            repository.Repository
+	domainActorID                         *actor.PID
+	nodeID                                string
+	pclient                               pastel.Client
+	maxSecondsToRespondToStorageChallenge int64
 }
 
 func NewStorageChallenge(cfg Config) StorageChallenge {

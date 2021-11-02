@@ -7,8 +7,8 @@ import (
 
 type Repository interface {
 	GetFilePathFromFileHash(ctx appcontext.Context, file_hash_string string) (string, error) // convert from storage_challenges.GetFilePathFromFileHashUsingDb
-	GetXorDistances(ctx appcontext.Context) ([]*model.XOR_Distance, error)                   // convert from storage_challenges.GetXorDistancesFromDb
-	GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, fileHash string, numberOfChallengeReplicas int, exceptRankedNodeID ...string) ([]*model.XOR_Distance, error)
+	GetXorDistances(ctx appcontext.Context) ([]*model.XORDistance, error)                    // convert from storage_challenges.GetXorDistancesFromDb
+	GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, fileHash string, numberOfChallengeReplicas int, exceptRankedNodeID ...string) ([]*model.XORDistance, error)
 	FindPendingStorageChallengesByRespondingMasterNodeID(ctx appcontext.Context, responding_masternode_id string) ([]*model.Challenges, error)
 	FindRespondedStorageChallengesByChallengingMasterNodeID(ctx appcontext.Context, responding_masternode_id string) ([]*model.Challenges, error)
 	FindStorageChallengeInssuanceMessageByChallengeID(ctx appcontext.Context, slice_of_challenge_ids []string) ([]*model.ChallengeMessages, error)
