@@ -21,42 +21,56 @@ func init() {
 	log = actorLog.New(actorLog.DebugLevel, "STORAGE_CHALLENGE")
 }
 
-func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incommingChallengeMessage *model.ChallengeMessages) error {
+func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incomingChallengeMessage *model.ChallengeMessages) error {
 	log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Debug("Start processing storage challenge")
-	challengeFileData, err := file.ReadFileIntoMemory(incommingChallengeMessage.FileHashToChallenge)
+	if err := s.validateProcessingStorageChallengeIncommingData(incomingChallengeMessage); err != nil {
+		return err
+	}
+
+	challengeFileData, err := file.ReadFileIntoMemory(incomingChallengeMessage.FileHashToChallenge)
 	if err != nil {
 		log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Error("could not read file data in to memory", actorLog.String("file.ReadFileIntoMemory", err.Error()))
 		return err
 	}
-	challengeResponseHash := s.computeHashofFileSlice(challengeFileData, int(incommingChallengeMessage.ChallengeSliceStartIndex), int(incommingChallengeMessage.ChallengeSliceStartIndex))
+	challengeResponseHash := s.computeHashofFileSlice(challengeFileData, int(incomingChallengeMessage.ChallengeSliceStartIndex), int(incomingChallengeMessage.ChallengeSliceStartIndex))
 	challengeStatus := model.Status_RESPONDED
 	messageType := model.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE
-	messageIDInputData := incommingChallengeMessage.ChallengingMasternodeId + incommingChallengeMessage.RespondingMasternodeId + incommingChallengeMessage.FileHashToChallenge + challengeStatus + messageType + incommingChallengeMessage.BlockHashWhenChallengeSent
+	messageIDInputData := incomingChallengeMessage.ChallengingMasternodeId + incomingChallengeMessage.RespondingMasternodeId + incomingChallengeMessage.FileHashToChallenge + challengeStatus + messageType + incomingChallengeMessage.BlockHashWhenChallengeSent
 	messageID := helper.GetHashFromString(messageIDInputData)
 	timestampChallengeRespondedTo := time.Now().Unix()
 
-	var outGoingChallengeMessage = &model.ChallengeMessages{
+	var outgoingChallengeMessage = &model.ChallengeMessages{
 		MessageID:                     messageID,
 		MessageType:                   model.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE,
 		ChallengeStatus:               model.Status_RESPONDED,
-		TimestampChallengeSent:        incommingChallengeMessage.TimestampChallengeSent,
+		TimestampChallengeSent:        incomingChallengeMessage.TimestampChallengeSent,
 		TimestampChallengeRespondedTo: timestampChallengeRespondedTo,
 		TimestampChallengeVerified:    0,
-		BlockHashWhenChallengeSent:    incommingChallengeMessage.BlockHashWhenChallengeSent,
-		ChallengingMasternodeId:       incommingChallengeMessage.ChallengingMasternodeId,
-		RespondingMasternodeId:        incommingChallengeMessage.RespondingMasternodeId,
-		FileHashToChallenge:           incommingChallengeMessage.FileHashToChallenge,
-		ChallengeSliceStartIndex:      incommingChallengeMessage.ChallengeSliceStartIndex,
-		ChallengeSliceEndIndex:        incommingChallengeMessage.ChallengeSliceEndIndex,
+		BlockHashWhenChallengeSent:    incomingChallengeMessage.BlockHashWhenChallengeSent,
+		ChallengingMasternodeId:       incomingChallengeMessage.ChallengingMasternodeId,
+		RespondingMasternodeId:        incomingChallengeMessage.RespondingMasternodeId,
+		FileHashToChallenge:           incomingChallengeMessage.FileHashToChallenge,
+		ChallengeSliceStartIndex:      incomingChallengeMessage.ChallengeSliceStartIndex,
+		ChallengeSliceEndIndex:        incomingChallengeMessage.ChallengeSliceEndIndex,
 		ChallengeSliceCorrectHash:     "",
 		ChallengeResponseHash:         challengeResponseHash,
-		ChallengeId:                   incommingChallengeMessage.ChallengeId,
+		ChallengeId:                   incomingChallengeMessage.ChallengeId,
 	}
-	s.repository.UpsertStorageChallengeMessage(ctx, outGoingChallengeMessage)
-	timeToRespondToStorageChallengeInSeconds := helper.ComputeElapsedTimeInSecondsBetweenTwoDatetimes(incommingChallengeMessage.TimestampChallengeSent, outGoingChallengeMessage.TimestampChallengeRespondedTo)
-	log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Debug("Masternode " + outGoingChallengeMessage.RespondingMasternodeId + " responded to storage challenge for file hash " + outGoingChallengeMessage.FileHashToChallenge + " in " + fmt.Sprint(timeToRespondToStorageChallengeInSeconds) + " seconds!")
+	s.repository.UpsertStorageChallengeMessage(ctx, outgoingChallengeMessage)
+	timeToRespondToStorageChallengeInSeconds := helper.ComputeElapsedTimeInSecondsBetweenTwoDatetimes(incomingChallengeMessage.TimestampChallengeSent, outgoingChallengeMessage.TimestampChallengeRespondedTo)
+	log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Debug("Masternode " + outgoingChallengeMessage.RespondingMasternodeId + " responded to storage challenge for file hash " + outgoingChallengeMessage.FileHashToChallenge + " in " + fmt.Sprint(timeToRespondToStorageChallengeInSeconds) + " seconds!")
 
-	return s.sendVerifyStorageChallenge(ctx, outGoingChallengeMessage)
+	return s.sendVerifyStorageChallenge(ctx, outgoingChallengeMessage)
+}
+
+func (s *storageChallenge) validateProcessingStorageChallengeIncommingData(incomingChallengeMessage *model.ChallengeMessages) error {
+	if incomingChallengeMessage.ChallengeStatus != model.Status_PENDING {
+		return fmt.Errorf("incorrect status to processing storage challenge")
+	}
+	if incomingChallengeMessage.MessageType != model.MessageType_STORAGE_CHALLENGE_ISSUANCE_MESSAGE {
+		return fmt.Errorf("incorrect message type to processing storage challenge")
+	}
+	return nil
 }
 
 func (s *storageChallenge) computeHashofFileSlice(file_data []byte, challenge_slice_start_index int, challenge_slice_end_index int) string {
