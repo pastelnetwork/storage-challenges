@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var store *Store
+var s Store
 
 type Config struct {
 	SQLiteDB     string `yaml:"sqlite_db"`
@@ -16,15 +16,19 @@ type Config struct {
 	Debug        bool   `yaml:"debug"`
 }
 
-type Store struct {
+type Store interface {
+	GetDB() *gorm.DB
+}
+
+type store struct {
 	db *gorm.DB
 }
 
-func (s *Store) GetDB() *gorm.DB {
+func (s *store) GetDB() *gorm.DB {
 	return s.db
 }
 
-func NewStore(c *Config) (*Store, error) {
+func NewStore(c Config) (Store, error) {
 	db, err := gorm.Open(sqlite.Open(c.SQLiteDB), &gorm.Config{SkipDefaultTransaction: true, CreateBatchSize: 200})
 	if err != nil {
 		return nil, err
@@ -49,10 +53,10 @@ func NewStore(c *Config) (*Store, error) {
 	if c.Debug {
 		db.Debug()
 	}
-	store = &Store{db}
-	return store, nil
+	s = &store{db}
+	return s, nil
 }
 
-func GetStore() *Store {
-	return store
+func GetStore() Store {
+	return s
 }

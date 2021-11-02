@@ -29,20 +29,16 @@ func GetHashFromString(input_string string) string {
 	return sha256_hash_of_input_string
 }
 
-func GenerateFakeBlockHashes(number_of_blocks_to_make int) []string {
-	slice_of_block_hashes := make([]string, number_of_blocks_to_make)
-	for ii := range slice_of_block_hashes {
-		slice_of_block_hashes[ii] = GetHashFromString(fmt.Sprint(ii))
+func GenerateFakeBlockHashes(numberOfBlockToMake int) []string {
+	sliceOfBlockHash := make([]string, numberOfBlockToMake)
+	for ii := range sliceOfBlockHash {
+		sliceOfBlockHash[ii] = GetHashFromString(fmt.Sprint(ii))
 	}
-	return slice_of_block_hashes
+	return sliceOfBlockHash
 }
 
-func ComputeElapsedTimeInSecondsBetweenTwoDatetimes(start_datetime_string string, end_datetime_string string) float64 {
-	start_datetime, _ := time.Parse(time.RFC3339, start_datetime_string)
-	end_datetime, _ := time.Parse(time.RFC3339, end_datetime_string)
-	time_delta := end_datetime.Sub(start_datetime)
-	total_seconds_elapsed := time_delta.Seconds()
-	return total_seconds_elapsed
+func ComputeElapsedTimeInSecondsBetweenTwoDatetimes(start, end int64) float64 {
+	return float64(end - start)
 }
 
 func ComputeXorDistanceBetweenTwoStrings(string1 string, string2 string) uint64 {
