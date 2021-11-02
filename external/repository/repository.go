@@ -17,11 +17,11 @@ func (r *repository) GetFilePathFromFileHash(ctx appcontext.Context, file_hash_s
 	return file_path, row.Scan(&file_path)
 }
 
-func (r *repository) GetXorDistances(ctx appcontext.Context) ([]*model.XOR_Distance, error) {
+func (r *repository) GetXorDistances(ctx appcontext.Context) ([]*model.XORDistance, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, numberOfChallengeReplicas int, exceptMasternodeIDs ...string) ([]*model.XOR_Distance, error) {
+func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, numberOfChallengeReplicas int, exceptMasternodeIDs ...string) ([]*model.XORDistance, error) {
 	var queryStatement, queryStatementPrepared string
 	if len(exceptMasternodeIDs) == 0 {
 		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances)) WHERE rnk <= %v"
@@ -32,8 +32,8 @@ func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.
 	}
 	db := ctx.GetDBTx()
 
-	var xorDistances []*model.XOR_Distance
-	return xorDistances, db.Model(&model.XOR_Distance{}).Raw(queryStatementPrepared).Scan(&xorDistances).Error
+	var xorDistances []*model.XORDistance
+	return xorDistances, db.Model(&model.XORDistance{}).Raw(queryStatementPrepared).Scan(&xorDistances).Error
 }
 
 func (r *repository) FindPendingStorageChallengesByRespondingMasterNodeID(ctx appcontext.Context, responding_masternode_id string) ([]*model.Challenges, error) {

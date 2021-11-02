@@ -13,7 +13,7 @@ import (
 
 func main() {
 	remoter := message.NewRemoter(actor.NewActorSystem(), message.Config{Remoter: message.Address{Host: "localhost", Port: 9002}})
-	dommainService := service.NewStorageChallenge(remoter, nil)
+	dommainService := service.NewStorageChallenge(service.Config{Remoter: remoter})
 	store, err := storage.NewStore(storage.Config{})
 	if err != nil {
 		log.Fatal("storage.NewStore", err)

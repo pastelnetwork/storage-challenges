@@ -7,8 +7,11 @@ var (
 	MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE     = dto.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE.String()
 	MessageType_STORAGE_CHALLENGE_VERIFICATION_MESSAGE = dto.MessageType_STORAGE_CHALLENGE_VERIFICATION_MESSAGE.String()
 
-	Status_PENDING   = dto.Status_PENDING.String()
-	Status_RESPONDED = dto.Status_RESPONDED.String()
+	Status_PENDING                   = dto.Status_PENDING.String()
+	Status_RESPONDED                 = dto.Status_RESPONDED.String()
+	Status_SUCCEEDED                 = dto.Status_SUCCEEDED.String()
+	Status_FAILED_TIMEOUT            = dto.Status_FAILED_TIMEOUT.String()
+	Status_FAILED_INCORRECT_RESPONSE = dto.Status_FAILED_INCORRECT_RESPONSE.String()
 )
 
 type ChallengeMessages struct {
@@ -77,7 +80,7 @@ type SymbolFiles struct {
 	Original_file_path        string
 }
 
-type XOR_Distance struct {
+type XORDistance struct {
 	XorDistanceID string
 	MasternodeID  string
 	FileHash      string

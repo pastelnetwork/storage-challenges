@@ -7,8 +7,6 @@ option go_package = "github.com/pastelnetwork/storage-challenges/application/dto
 
 package dto;
 
-import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
-
 message StorageChallengeData {
     string message_id = 1;
     enum messageType {
@@ -22,6 +20,9 @@ message StorageChallengeData {
         Status_UNKNOWN = 0;
         Status_PENDING = 1;
         Status_RESPONDED = 2;
+        Status_SUCCEEDED = 3;
+        Status_FAILED_TIMEOUT = 4;
+        Status_FAILED_INCORRECT_RESPONSE = 5;
     }
     status challenge_status = 3;
     int64 timestamp_challenge_sent = 4;
