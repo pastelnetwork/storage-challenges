@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	actorLog "github.com/AsynkronIT/protoactor-go/log"
+	"github.com/pastelnetwork/gonode/pastel"
 	"github.com/pastelnetwork/storage-challenges/domain/model"
 	appcontext "github.com/pastelnetwork/storage-challenges/utils/context"
 	"github.com/pastelnetwork/storage-challenges/utils/file"
@@ -65,8 +67,31 @@ func (s *storageChallenge) computeHashofFileSlice(file_data []byte, challenge_sl
 	return hash_of_data_slice
 }
 
-func (s *storageChallenge) sendVerifyStorageChallenge(ctx appcontext.Context, challlengeMessage *model.ChallengeMessages) error {
-	// s.repository.GetTopRankedXorDistanceMasternodeToFileHash(ctx, 6)
-	// TODO: query to database to get top 6 ranked node to get master node id, send action verify storage challenge to that 6 nodes
-	return s.remoter.Send(ctx, s.domainActorID, &verifyStotageChallengeMsg{})
+func (s *storageChallenge) sendVerifyStorageChallenge(ctx appcontext.Context, challengeMessage *model.ChallengeMessages) error {
+	rankedXorDistances, err := s.repository.GetTopRankedXorDistanceMasternodeToFileHash(ctx, challengeMessage.FileHashToChallenge, 6, s.nodeID)
+	if err != nil {
+		return err
+	}
+
+	masternodes, err := s.pclient.MasterNodesExtra(ctx)
+	if err != nil {
+		return err
+	}
+
+	mapMasternodes := make(map[string]pastel.MasterNode)
+	for _, mn := range masternodes {
+		mapMasternodes[mn.ExtKey] = mn
+	}
+
+	verifierMasterNodesClientPIDs := []*actor.PID{}
+	for _, xorDistance := range rankedXorDistances {
+		var mn pastel.MasterNode
+		var ok bool
+		if mn, ok = mapMasternodes[xorDistance.MasternodeID]; !ok {
+			return fmt.Errorf("cannot get masternode info of masternode id %v", xorDistance.MasternodeID)
+		}
+		verifierMasterNodesClientPIDs = append(verifierMasterNodesClientPIDs, actor.NewPID(mn.ExtAddress, "domain-service"))
+	}
+
+	return s.remoter.Send(ctx, s.domainActorID, &verifyStotageChallengeMsg{VerifierMasterNodesClientPIDs: verifierMasterNodesClientPIDs, ChallengeMessages: challengeMessage})
 }

@@ -78,8 +78,8 @@ type SymbolFiles struct {
 }
 
 type XOR_Distance struct {
-	Xor_distance_id string
-	Masternode_id   string
-	File_hash       string
-	Xor_distance    uint64
+	XorDistanceID string
+	MasternodeID  string
+	FileHash      string
+	XorDistance   uint64
 }

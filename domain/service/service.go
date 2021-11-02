@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/pastelnetwork/gonode/pastel"
 	"github.com/pastelnetwork/storage-challenges/domain/model"
 	"github.com/pastelnetwork/storage-challenges/external/message"
 	"github.com/pastelnetwork/storage-challenges/external/repository"
@@ -16,9 +17,11 @@ type storageChallenge struct {
 	remoter       *message.Remoter
 	repository    repository.Repository
 	domainActorID *actor.PID
+	nodeID        string
+	pclient       pastel.Client
 }
 type verifyStotageChallengeMsg struct {
-	VerifierMasternodeIDs []string
+	VerifierMasterNodesClientPIDs []*actor.PID
 	*model.ChallengeMessages
 }
 
@@ -28,12 +31,13 @@ func (v *verifyStotageChallengeMsg) String() string {
 
 func (v *verifyStotageChallengeMsg) Reset() {
 	v.ChallengeMessages = nil
-	v.VerifierMasternodeIDs = nil
+	v.VerifierMasterNodesClientPIDs = nil
 }
 
 func (v *verifyStotageChallengeMsg) ProtoMessage() {}
 
-type domainActor struct{}
+type domainActor struct {
+}
 
 func (d *domainActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {

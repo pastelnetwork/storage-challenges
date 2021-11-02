@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/pastelnetwork/storage-challenges/domain/model"
 	appcontext "github.com/pastelnetwork/storage-challenges/utils/context"
 )
@@ -18,8 +21,19 @@ func (r *repository) GetXorDistances(ctx appcontext.Context) ([]*model.XOR_Dista
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, number_of_challenge_replicas int) ([]*model.XOR_Distance, error) {
-	panic("not implemented") // TODO: Implement
+func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, numberOfChallengeReplicas int, exceptMasternodeIDs ...string) ([]*model.XOR_Distance, error) {
+	var queryStatement, queryStatementPrepared string
+	if len(exceptMasternodeIDs) == 0 {
+		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances)) WHERE rnk <= %v"
+		queryStatementPrepared = fmt.Sprintf(queryStatement, numberOfChallengeReplicas)
+	} else {
+		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances)) WHERE rnk <= %v AND masternode_id NOT IN (%s)"
+		queryStatementPrepared = fmt.Sprintf(queryStatement, numberOfChallengeReplicas, strings.Join(exceptMasternodeIDs, ","))
+	}
+	db := ctx.GetDBTx()
+
+	var xorDistances []*model.XOR_Distance
+	return xorDistances, db.Model(&model.XOR_Distance{}).Raw(queryStatementPrepared).Scan(&xorDistances).Error
 }
 
 func (r *repository) FindPendingStorageChallengesByRespondingMasterNodeID(ctx appcontext.Context, responding_masternode_id string) ([]*model.Challenges, error) {

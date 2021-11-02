@@ -6,10 +6,9 @@ import (
 )
 
 func (s *domainActor) OnSendVerifyStorageChallengeMessage(ctx actor.Context, msg *verifyStotageChallengeMsg) {
-	for _, verifyingMasternodeID := range msg.VerifierMasternodeIDs {
-		log.Debug(verifyingMasternodeID)
-		// TODO: pastelClient get masternode address from masternodeID, create pid from that address
-		ctx.Send(actor.NewPID("localhost:9002", "storage-challenge"), &dto.VerifyStorageChallengeRequest{
+	for _, verifyingMasternodePID := range msg.VerifierMasterNodesClientPIDs {
+		log.Debug(verifyingMasternodePID.String())
+		ctx.Send(verifyingMasternodePID, &dto.VerifyStorageChallengeRequest{
 			Data: &dto.StorageChallengeData{
 				MessageId:                     msg.MessageID,
 				MessageType:                   dto.StorageChallengeDataMessageType(dto.StorageChallengeDataStatus_value[msg.MessageType]),
