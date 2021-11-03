@@ -65,13 +65,11 @@ type Address struct {
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
 }
-type Config struct {
-	Remoter Address `yaml:"remoter"`
-}
+type Config = Address
 
 func NewRemoter(system *actor.ActorSystem, cfg Config) *Remoter {
 	return &Remoter{
-		remoter: remote.NewRemote(system, remote.Configure(cfg.Remoter.Host, cfg.Remoter.Port)),
+		remoter: remote.NewRemote(system, remote.Configure(cfg.Host, cfg.Port)),
 		context: system.Root,
 		mapPID:  make(map[string]*actor.PID),
 	}

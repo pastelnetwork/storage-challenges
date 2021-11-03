@@ -21,7 +21,7 @@ func init() {
 	log = actorLog.New(actorLog.DebugLevel, "STORAGE_CHALLENGE")
 }
 
-func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incomingChallengeMessage *model.ChallengeMessages) error {
+func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incomingChallengeMessage *model.ChallengeMessage) error {
 	log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Debug("Start processing storage challenge")
 	if err := s.validateProcessingStorageChallengeIncommingData(incomingChallengeMessage); err != nil {
 		return err
@@ -35,11 +35,11 @@ func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incom
 	challengeResponseHash := s.computeHashofFileSlice(challengeFileData, int(incomingChallengeMessage.ChallengeSliceStartIndex), int(incomingChallengeMessage.ChallengeSliceStartIndex))
 	challengeStatus := model.Status_RESPONDED
 	messageType := model.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE
-	messageIDInputData := incomingChallengeMessage.ChallengingMasternodeId + incomingChallengeMessage.RespondingMasternodeId + incomingChallengeMessage.FileHashToChallenge + challengeStatus + messageType + incomingChallengeMessage.BlockHashWhenChallengeSent
+	messageIDInputData := incomingChallengeMessage.ChallengingMasternodeID + incomingChallengeMessage.RespondingMasternodeID + incomingChallengeMessage.FileHashToChallenge + challengeStatus + messageType + incomingChallengeMessage.BlockHashWhenChallengeSent
 	messageID := helper.GetHashFromString(messageIDInputData)
 	timestampChallengeRespondedTo := time.Now().Unix()
 
-	var outgoingChallengeMessage = &model.ChallengeMessages{
+	var outgoingChallengeMessage = &model.ChallengeMessage{
 		MessageID:                     messageID,
 		MessageType:                   model.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE,
 		ChallengeStatus:               model.Status_RESPONDED,
@@ -47,23 +47,26 @@ func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incom
 		TimestampChallengeRespondedTo: timestampChallengeRespondedTo,
 		TimestampChallengeVerified:    0,
 		BlockHashWhenChallengeSent:    incomingChallengeMessage.BlockHashWhenChallengeSent,
-		ChallengingMasternodeId:       incomingChallengeMessage.ChallengingMasternodeId,
-		RespondingMasternodeId:        incomingChallengeMessage.RespondingMasternodeId,
+		ChallengingMasternodeID:       incomingChallengeMessage.ChallengingMasternodeID,
+		RespondingMasternodeID:        incomingChallengeMessage.RespondingMasternodeID,
 		FileHashToChallenge:           incomingChallengeMessage.FileHashToChallenge,
 		ChallengeSliceStartIndex:      incomingChallengeMessage.ChallengeSliceStartIndex,
 		ChallengeSliceEndIndex:        incomingChallengeMessage.ChallengeSliceEndIndex,
 		ChallengeSliceCorrectHash:     "",
 		ChallengeResponseHash:         challengeResponseHash,
-		ChallengeId:                   incomingChallengeMessage.ChallengeId,
+		ChallengeID:                   incomingChallengeMessage.ChallengeID,
 	}
-	s.repository.UpsertStorageChallengeMessage(ctx, outgoingChallengeMessage)
+	if err := s.repository.UpsertStorageChallengeMessage(ctx, outgoingChallengeMessage); err != nil {
+		log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Error("could not update new storage challenge message in to database", actorLog.String("s.repository.UpsertStorageChallengeMessage", err.Error()))
+		return err
+	}
 	timeToRespondToStorageChallengeInSeconds := helper.ComputeElapsedTimeInSecondsBetweenTwoDatetimes(incomingChallengeMessage.TimestampChallengeSent, outgoingChallengeMessage.TimestampChallengeRespondedTo)
-	log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Debug("Masternode " + outgoingChallengeMessage.RespondingMasternodeId + " responded to storage challenge for file hash " + outgoingChallengeMessage.FileHashToChallenge + " in " + fmt.Sprint(timeToRespondToStorageChallengeInSeconds) + " seconds!")
+	log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Debug("Masternode " + outgoingChallengeMessage.RespondingMasternodeID + " responded to storage challenge for file hash " + outgoingChallengeMessage.FileHashToChallenge + " in " + fmt.Sprint(timeToRespondToStorageChallengeInSeconds) + " seconds!")
 
 	return s.sendVerifyStorageChallenge(ctx, outgoingChallengeMessage)
 }
 
-func (s *storageChallenge) validateProcessingStorageChallengeIncommingData(incomingChallengeMessage *model.ChallengeMessages) error {
+func (s *storageChallenge) validateProcessingStorageChallengeIncommingData(incomingChallengeMessage *model.ChallengeMessage) error {
 	if incomingChallengeMessage.ChallengeStatus != model.Status_PENDING {
 		return fmt.Errorf("incorrect status to processing storage challenge")
 	}
@@ -81,7 +84,7 @@ func (s *storageChallenge) computeHashofFileSlice(file_data []byte, challenge_sl
 	return hash_of_data_slice
 }
 
-func (s *storageChallenge) sendVerifyStorageChallenge(ctx appcontext.Context, challengeMessage *model.ChallengeMessages) error {
+func (s *storageChallenge) sendVerifyStorageChallenge(ctx appcontext.Context, challengeMessage *model.ChallengeMessage) error {
 	rankedXorDistances, err := s.repository.GetTopRankedXorDistanceMasternodeToFileHash(ctx, challengeMessage.FileHashToChallenge, 6, s.nodeID)
 	if err != nil {
 		return err
@@ -107,5 +110,5 @@ func (s *storageChallenge) sendVerifyStorageChallenge(ctx appcontext.Context, ch
 		verifierMasterNodesClientPIDs = append(verifierMasterNodesClientPIDs, actor.NewPID(mn.ExtAddress, "domain-service"))
 	}
 
-	return s.remoter.Send(ctx, s.domainActorID, &verifyStotageChallengeMsg{VerifierMasterNodesClientPIDs: verifierMasterNodesClientPIDs, ChallengeMessages: challengeMessage})
+	return s.remoter.Send(ctx, s.domainActorID, &verifyStotageChallengeMsg{VerifierMasterNodesClientPIDs: verifierMasterNodesClientPIDs, ChallengeMessage: challengeMessage})
 }
