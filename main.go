@@ -1,24 +1,79 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"net"
+	"time"
 
-	appgrpc "github.com/pastelnetwork/storage-challenges/application/grpc"
-	"google.golang.org/grpc"
+	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/pastelnetwork/gonode/common/net/credentials"
+	"github.com/pastelnetwork/gonode/common/net/credentials/alts"
+	"github.com/pastelnetwork/gonode/pastel"
+	appactor "github.com/pastelnetwork/storage-challenges/application/actor"
+	"github.com/pastelnetwork/storage-challenges/config"
+	"github.com/pastelnetwork/storage-challenges/domain/service"
+	"github.com/pastelnetwork/storage-challenges/external/message"
+	"github.com/pastelnetwork/storage-challenges/external/repository"
+	"github.com/pastelnetwork/storage-challenges/external/storage"
 )
 
 func main() {
-	// AutoMigrate()
-	server := grpc.NewServer(grpc.EmptyServerOption{})
-	appgrpc.RegisterStorageChallengeServer(server, appgrpc.NewStorageChallengeServer())
-	l, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		log.Fatal(err)
+	cfg := config.Config{}
+	if err := cfg.Load(); err != nil {
+		panic(fmt.Sprintf("could not load config data: %v", err))
 	}
-	log.Println("server started")
-	server.Serve(l)
-	defer server.GracefulStop()
+	if cfg.Database == nil {
+		panic("database configuration not found")
+	}
+	if cfg.Remoter == nil {
+		cfg.Remoter = &message.Config{}
+	}
+	if cfg.PastelClient == nil {
+		cfg.PastelClient = pastel.NewConfig()
+	}
+	store, err := storage.NewStore(*cfg.Database)
+	if err != nil {
+		panic(fmt.Sprintf("could not connect to database %v", err))
+	}
+
+	pastelClient := pastel.NewClient(cfg.PastelClient)
+
+	secInfo := &alts.SecInfo{
+		PastelID:   cfg.MasternodePastelID,
+		PassPhrase: cfg.MasternodePastelPassphrase,
+		Algorithm:  "ed448",
+	}
+
+	remoter := message.NewRemoter(
+		actor.NewActorSystem(),
+		*cfg.Remoter.
+			WithClientSecureCres(credentials.NewClientCreds(pastelClient, secInfo)).
+			WithServerSecureCres(credentials.NewServerCreds(pastelClient, secInfo)),
+	)
+	defer remoter.GracefulStop()
+
+	repo := repository.New()
+
+	domainService := service.NewStorageChallenge(service.Config{
+		Remoter:                         remoter,
+		Repository:                      repo,
+		MasternodeID:                    cfg.MasternodePastelID,
+		StorageChallengeExpiredDuration: 10 * time.Second,
+	})
+
+	_, err = remoter.RegisterActor(appactor.NewStorageChallengeActor(domainService, store), "storage-challenge")
+	if err != nil {
+		panic(fmt.Sprintf("coult not register application storage challenge actor: %v", err))
+	}
+
+	log.Println("NODE STARTED, INPUT `exit` TO STOP NODE")
+	for {
+		input, _ := console.ReadLine()
+		if input == "exit" {
+			return
+		}
+	}
 }
 
 // import (

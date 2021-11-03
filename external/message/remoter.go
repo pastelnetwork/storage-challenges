@@ -5,6 +5,8 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 	appcontext "github.com/pastelnetwork/storage-challenges/utils/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type Remoter struct {
@@ -18,17 +20,6 @@ func (r *Remoter) Send(ctx appcontext.Context, pid *actor.PID, message proto.Mes
 		actorContext.Send(pid, message)
 	} else {
 		r.context.Send(pid, message)
-	}
-	return nil
-}
-
-func (r *Remoter) SendMany(ctx appcontext.Context, pidSet *actor.PIDSet, message proto.Message) error {
-	for _, client := range pidSet.Values() {
-		if actorContext := ctx.GetActorContext(); actorContext != nil {
-			actorContext.Send(client, message)
-		} else {
-			r.context.Send(client, message)
-		}
 	}
 	return nil
 }
@@ -61,15 +52,42 @@ func (r *Remoter) GracefulStop() {
 	r.remoter.Shutdown(true)
 }
 
-type Address struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
+type Config struct {
+	Host             string `yaml:"host"`
+	Port             int    `yaml:"port"`
+	clientSecureCres credentials.TransportCredentials
+	serverSecureCres credentials.TransportCredentials
 }
-type Config = Address
+
+func (c *Config) WithClientSecureCres(s credentials.TransportCredentials) *Config {
+	c.clientSecureCres = s
+	return c
+}
+
+func (c *Config) WithServerSecureCres(s credentials.TransportCredentials) *Config {
+	c.serverSecureCres = s
+	return c
+}
 
 func NewRemoter(system *actor.ActorSystem, cfg Config) *Remoter {
+	if cfg.Host == "" {
+		cfg.Host = "0.0.0.0"
+	}
+	if cfg.Port == 0 {
+		cfg.Port = 9000
+	}
+	remoterConfig := remote.Configure(cfg.Host, cfg.Port)
+	clientCres := []grpc.DialOption{grpc.WithBlock()}
+	serverCres := []grpc.ServerOption{}
+	if cfg.clientSecureCres != nil {
+		clientCres = append(clientCres, grpc.WithTransportCredentials(cfg.clientSecureCres))
+	}
+	if cfg.serverSecureCres != nil {
+		serverCres = append(serverCres, grpc.Creds(cfg.serverSecureCres))
+	}
+	remoterConfig.WithDialOptions(clientCres...).WithServerOptions(serverCres...)
 	return &Remoter{
-		remoter: remote.NewRemote(system, remote.Configure(cfg.Host, cfg.Port)),
+		remoter: remote.NewRemote(system, remoterConfig),
 		context: system.Root,
 		mapPID:  make(map[string]*actor.PID),
 	}

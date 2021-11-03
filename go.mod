@@ -8,6 +8,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/karrick/godirwalk v1.16.1
 	github.com/mkmik/argsort v1.1.0
+	github.com/pastelnetwork/gonode/common v0.0.0
 	github.com/pastelnetwork/gonode/pastel v0.0.0
 	github.com/spf13/viper v1.9.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
@@ -39,8 +40,9 @@ require (
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc // indirect
-	github.com/pastelnetwork/gonode/common v0.0.0 // indirect
+	github.com/otrv4/ed448 v0.0.0-20210127123821-203e597250c3 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
