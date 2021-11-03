@@ -11,32 +11,75 @@ type CommonModel struct {
 	UpdatedAt time.Time
 }
 
-type ChallengeMessages struct {
+type ChallengeMessage struct {
 	*CommonModel
-	*model.ChallengeMessages
+	*model.ChallengeMessage
 }
 
-type Challenges struct {
+type Challenge struct {
 	*CommonModel
-	*model.Challenges
+	*model.Challenge
 }
 
-type PastelBlocks struct {
+type PastelBlock struct {
 	*CommonModel
-	*model.PastelBlocks
+	*model.PastelBlock
 }
 
-type Masternodes struct {
+type Masternode struct {
 	*CommonModel
-	*model.Masternodes
+	*model.Masternode
 }
 
-type SymbolFiles struct {
+type SymbolFile struct {
 	*CommonModel
-	*model.SymbolFiles
+	*model.SymbolFile
 }
 
-type XOR_Distance struct {
+type XORDistance struct {
 	*CommonModel
 	*model.XORDistance
+}
+
+func (XORDistance) TableName() string {
+	return "xor_distances"
+}
+
+func mapChallengeMessages(in []*ChallengeMessage) []*model.ChallengeMessage {
+	var models = []*model.ChallengeMessage{}
+	for _, challengeMessage := range in {
+		models = append(models, mapChallengeMessage(challengeMessage))
+	}
+
+	return models
+}
+
+func mapChallengeMessage(in *ChallengeMessage) *model.ChallengeMessage {
+	return in.ChallengeMessage
+}
+
+func mapRepoChallengeMessage(in *model.ChallengeMessage) *ChallengeMessage {
+	return &ChallengeMessage{CommonModel: &CommonModel{}, ChallengeMessage: in}
+}
+
+func mapRepoChallengeMessages(in []*model.ChallengeMessage) []*ChallengeMessage {
+	var repos = []*ChallengeMessage{}
+	for _, challengeMessage := range in {
+		repos = append(repos, mapRepoChallengeMessage(challengeMessage))
+	}
+
+	return repos
+}
+
+func mapXORDistance(in *XORDistance) *model.XORDistance {
+	return in.XORDistance
+}
+
+func mapXORDistances(in []*XORDistance) []*model.XORDistance {
+	var models = []*model.XORDistance{}
+	for _, xorDistance := range in {
+		models = append(models, mapXORDistance(xorDistance))
+	}
+
+	return models
 }

@@ -10,7 +10,7 @@ import (
 
 type verifyStotageChallengeMsg struct {
 	VerifierMasterNodesClientPIDs []*actor.PID
-	*model.ChallengeMessages
+	*model.ChallengeMessage
 }
 
 func (v *verifyStotageChallengeMsg) String() string {
@@ -18,7 +18,7 @@ func (v *verifyStotageChallengeMsg) String() string {
 }
 
 func (v *verifyStotageChallengeMsg) Reset() {
-	v.ChallengeMessages = nil
+	v.ChallengeMessage = nil
 	v.VerifierMasterNodesClientPIDs = nil
 }
 
@@ -46,8 +46,8 @@ func (s *domainActor) OnSendVerifyStorageChallengeMessage(ctx actor.Context, msg
 				TimestampChallengeRespondedTo: msg.TimestampChallengeRespondedTo,
 				TimestampChallengeVerified:    0,
 				BlockHashWhenChallengeSent:    msg.BlockHashWhenChallengeSent,
-				ChallengingMasternodeId:       msg.ChallengingMasternodeId,
-				RespondingMasternodeId:        msg.RespondingMasternodeId,
+				ChallengingMasternodeId:       msg.ChallengingMasternodeID,
+				RespondingMasternodeId:        msg.RespondingMasternodeID,
 				ChallengeFile: &dto.StorageChallengeDataChallengeFile{
 					FileHashToChallenge:      msg.FileHashToChallenge,
 					ChallengeSliceStartIndex: int64(msg.ChallengeSliceStartIndex),
@@ -55,7 +55,7 @@ func (s *domainActor) OnSendVerifyStorageChallengeMessage(ctx actor.Context, msg
 				},
 				ChallengeSliceCorrectHash: "",
 				ChallengeResponseHash:     msg.ChallengeResponseHash,
-				ChallengeId:               msg.ChallengeId,
+				ChallengeId:               msg.ChallengeID,
 			},
 		})
 	}

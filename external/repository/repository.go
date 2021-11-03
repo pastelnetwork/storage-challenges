@@ -6,15 +6,17 @@ import (
 
 	"github.com/pastelnetwork/storage-challenges/domain/model"
 	appcontext "github.com/pastelnetwork/storage-challenges/utils/context"
+	"gorm.io/gorm/clause"
 )
 
 type repository struct{}
 
 func (r *repository) GetFilePathFromFileHash(ctx appcontext.Context, file_hash_string string) (string, error) {
 	db := ctx.GetDBTx()
-	var file_path string
+	var filePath string
 	row := db.Table("symbol_files").Where("file_hash = ?", file_hash_string).Select("original_file_path").Row()
-	return file_path, row.Scan(&file_path)
+	err := row.Scan(&filePath)
+	return filePath, err
 }
 
 func (r *repository) GetXorDistances(ctx appcontext.Context) ([]*model.XORDistance, error) {
@@ -27,28 +29,29 @@ func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.
 		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances)) WHERE rnk <= %v"
 		queryStatementPrepared = fmt.Sprintf(queryStatement, numberOfChallengeReplicas)
 	} else {
-		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances)) WHERE rnk <= %v AND masternode_id NOT IN (%s)"
-		queryStatementPrepared = fmt.Sprintf(queryStatement, numberOfChallengeReplicas, strings.Join(exceptMasternodeIDs, ","))
+		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances WHERE masternode_id NOT IN (%s))) WHERE rnk <= %v"
+		queryStatementPrepared = fmt.Sprintf(queryStatement, strings.Join(exceptMasternodeIDs, ","), numberOfChallengeReplicas)
 	}
 	db := ctx.GetDBTx()
 
-	var xorDistances []*model.XORDistance
-	return xorDistances, db.Model(&model.XORDistance{}).Raw(queryStatementPrepared).Scan(&xorDistances).Error
+	var xorDistances []*XORDistance
+	err := db.Model(&model.XORDistance{}).Raw(queryStatementPrepared).Scan(&xorDistances).Error
+	return mapXORDistances(xorDistances), err
 }
 
-func (r *repository) FindPendingStorageChallengesByRespondingMasterNodeID(ctx appcontext.Context, responding_masternode_id string) ([]*model.Challenges, error) {
+func (r *repository) FindPendingStorageChallengesByRespondingMasterNodeID(ctx appcontext.Context, responding_masternode_id string) ([]*model.Challenge, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *repository) FindRespondedStorageChallengesByChallengingMasterNodeID(ctx appcontext.Context, responding_masternode_id string) ([]*model.Challenges, error) {
+func (r *repository) FindRespondedStorageChallengesByChallengingMasterNodeID(ctx appcontext.Context, responding_masternode_id string) ([]*model.Challenge, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *repository) FindStorageChallengeInssuanceMessageByChallengeID(ctx appcontext.Context, slice_of_challenge_ids []string) ([]*model.ChallengeMessages, error) {
+func (r *repository) FindStorageChallengeInssuanceMessageByChallengeID(ctx appcontext.Context, slice_of_challenge_ids []string) ([]*model.ChallengeMessage, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *repository) FindStorageChallengeResponseMessageByChallengeID(ctx appcontext.Context, slice_of_challenge_ids []string) ([]*model.ChallengeMessages, error) {
+func (r *repository) FindStorageChallengeResponseMessageByChallengeID(ctx appcontext.Context, slice_of_challenge_ids []string) ([]*model.ChallengeMessage, error) {
 	panic("not implemented") // TODO: Implement
 }
 
@@ -60,8 +63,10 @@ func (r *repository) UpsertXorDistances(ctx appcontext.Context, pastel_masternod
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *repository) UpsertStorageChallengeMessage(ctx appcontext.Context, storage_challenge_message *model.ChallengeMessages) error {
-	panic("not implemented") // TODO: Implement
+func (r *repository) UpsertStorageChallengeMessage(ctx appcontext.Context, challengeMessage *model.ChallengeMessage) error {
+	repoChalengeMessage := mapRepoChallengeMessage(challengeMessage)
+	db := ctx.GetDBTx()
+	return db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "message_id"}}, UpdateAll: true}).Create(repoChalengeMessage).Error
 }
 
 func (r *repository) UpsertMasternodes(ctx appcontext.Context) error {
