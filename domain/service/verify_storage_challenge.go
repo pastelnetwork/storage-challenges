@@ -27,7 +27,7 @@ func (s *storageChallenge) VerifyStorageChallenge(ctx appcontext.Context, incomi
 	TimestampChallengeVerified := time.Now().Unix()
 	TimeVerifyStorageChallengeInSeconds := helper.ComputeElapsedTimeInSecondsBetweenTwoDatetimes(incomingChallengeMessage.TimestampChallengeSent, TimestampChallengeVerified)
 	var challengeStatus string
-	if (incomingChallengeMessage.ChallengeResponseHash == challengeCorrectHash) && (TimeVerifyStorageChallengeInSeconds <= float64(s.maxSecondsToRespondToStorageChallenge)) {
+	if (incomingChallengeMessage.ChallengeResponseHash == challengeCorrectHash) && (TimeVerifyStorageChallengeInSeconds <= float64(s.storageChallengeExpiredAsSeconds)) {
 		challengeStatus = model.Status_SUCCEEDED
 		log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Debug("Masternode " + incomingChallengeMessage.RespondingMasternodeID + " correctly responded in " + fmt.Sprint(TimeVerifyStorageChallengeInSeconds) + " seconds to a storage challenge for file " + incomingChallengeMessage.FileHashToChallenge)
 	} else if incomingChallengeMessage.ChallengeResponseHash == challengeCorrectHash {

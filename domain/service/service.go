@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/pastelnetwork/gonode/pastel"
 	"github.com/pastelnetwork/storage-challenges/external/message"
@@ -8,26 +11,26 @@ import (
 )
 
 type Config struct {
-	Remoter                               *message.Remoter
-	Repository                            repository.Repository
-	MasterNodeID                          string
-	PastelClient                          pastel.Client
-	MaxSecondsToRespondToStorageChallenge int64
+	Remoter                         *message.Remoter
+	Repository                      repository.Repository
+	MasternodeID                    string
+	PastelClient                    pastel.Client
+	StorageChallengeExpiredDuration time.Duration
 }
 
 type storageChallenge struct {
-	remoter                               *message.Remoter
-	repository                            repository.Repository
-	domainActorID                         *actor.PID
-	nodeID                                string
-	pclient                               pastel.Client
-	maxSecondsToRespondToStorageChallenge int64
+	remoter                          *message.Remoter
+	repository                       repository.Repository
+	domainActorID                    *actor.PID
+	nodeID                           string
+	pclient                          pastel.Client
+	storageChallengeExpiredAsSeconds int64
 }
 
 func NewStorageChallenge(cfg Config) StorageChallenge {
 	actorID, err := cfg.Remoter.RegisterActor(&domainActor{}, "domain-service")
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("could not register domain actor: %v", err))
 	}
-	return &storageChallenge{remoter: cfg.Remoter, repository: cfg.Repository, domainActorID: actorID, nodeID: cfg.MasterNodeID, pclient: cfg.PastelClient}
+	return &storageChallenge{remoter: cfg.Remoter, repository: cfg.Repository, domainActorID: actorID, nodeID: cfg.MasternodeID, pclient: cfg.PastelClient, storageChallengeExpiredAsSeconds: int64(cfg.StorageChallengeExpiredDuration.Seconds())}
 }

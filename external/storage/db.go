@@ -13,7 +13,7 @@ type Config struct {
 	SQLiteDB     string `yaml:"sqlite_db"`
 	MaxIdleConns int    `yaml:"max_idle_conns"`
 	MaxOpenConns int    `yaml:"max_open_conns"`
-	Debug        bool   `yaml:"debug"`
+	Debug        bool   `yaml:"debug,omitempty"`
 }
 
 type Store interface {

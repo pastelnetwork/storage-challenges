@@ -23,14 +23,14 @@ func (r *repository) GetXorDistances(ctx appcontext.Context) ([]*model.XORDistan
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, numberOfChallengeReplicas int, exceptMasternodeIDs ...string) ([]*model.XORDistance, error) {
+func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, fileHash string, numberOfChallengeReplicas int, exceptMasternodeIDs ...string) ([]*model.XORDistance, error) {
 	var queryStatement, queryStatementPrepared string
 	if len(exceptMasternodeIDs) == 0 {
-		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances)) WHERE rnk <= %v"
-		queryStatementPrepared = fmt.Sprintf(queryStatement, numberOfChallengeReplicas)
+		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances WHERE file_hash = %s)) WHERE rnk <= %v"
+		queryStatementPrepared = fmt.Sprintf(queryStatement, fileHash, numberOfChallengeReplicas)
 	} else {
-		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances WHERE masternode_id NOT IN (%s))) WHERE rnk <= %v"
-		queryStatementPrepared = fmt.Sprintf(queryStatement, strings.Join(exceptMasternodeIDs, ","), numberOfChallengeReplicas)
+		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances WHERE file_hash = %s AND masternode_id NOT IN (%s))) WHERE rnk <= %v"
+		queryStatementPrepared = fmt.Sprintf(queryStatement, fileHash, strings.Join(exceptMasternodeIDs, ","), numberOfChallengeReplicas)
 	}
 	db := ctx.GetDBTx()
 
@@ -85,6 +85,10 @@ func (r *repository) UpsertBlockStats(slice_of_block_hashes []string) error {
 	panic("not implemented") // TODO: Implement
 }
 
-func (repository) UpsertFiles(ctx appcontext.Context, slice_of_input_file_paths []string) error {
+func (r *repository) UpsertFiles(ctx appcontext.Context, slice_of_input_file_paths []string) error {
 	panic("not implemented") // TODO: Implement
+}
+
+func New() Repository {
+	return &repository{}
 }
