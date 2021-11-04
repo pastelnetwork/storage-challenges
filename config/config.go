@@ -26,6 +26,7 @@ var configENVPrefix string = "STORAGE_CHALLENGE_CONFIG"
 
 func init() {
 	val := os.Getenv(configENVPrefix)
+	fmt.Println("STORAGE_CHALLENGE_CONFIG", val)
 	if val != "" {
 		configPath = val
 	}

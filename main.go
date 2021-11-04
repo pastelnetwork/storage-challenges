@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"time"
@@ -19,6 +20,30 @@ import (
 )
 
 func main() {
+	var migrate, seed bool
+	flag.Bool("migrate", false, "migration only")
+	flag.Bool("migrate-seed", false, "migration with seeding dummy data")
+	flag.Parse()
+	flag.VisitAll(func(f *flag.Flag) {
+		if f.Name == "migrate" {
+			if f.Value.String() == "true" {
+				migrate = true
+			}
+		}
+		if f.Name == "migrate-seed" {
+			if f.Value.String() == "true" {
+				migrate = true
+				seed = true
+			}
+		}
+	})
+
+	fmt.Println(migrate, seed)
+
+	if migrate {
+		AutoMigrate(seed)
+		return
+	}
 	cfg := config.Config{}
 	if err := cfg.Load(); err != nil {
 		panic(fmt.Sprintf("could not load config data: %v", err))

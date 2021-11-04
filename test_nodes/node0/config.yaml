@@ -1,0 +1,13 @@
+version: 1.0
+
+remoter:
+  host: localhost
+  port: 9000
+
+database:
+  sqlite_db: storage_challenge.sqlite
+  max_idle_conns: 3
+  max_open_conns: 10
+  debug: true
+
+masternode_id: jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw
