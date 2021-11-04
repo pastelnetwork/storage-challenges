@@ -22,7 +22,7 @@ func (s *storageChallenge) VerifyStorageChallenge(ctx appcontext.Context, incomi
 		log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Error("could not read file data in to memory", actorLog.String("file.ReadFileIntoMemory", err.Error()))
 		return err
 	}
-	challengeCorrectHash := s.computeHashofFileSlice(challengeFileData, int(incomingChallengeMessage.ChallengeSliceStartIndex), int(incomingChallengeMessage.ChallengeSliceStartIndex))
+	challengeCorrectHash := s.computeHashofFileSlice(challengeFileData, int(incomingChallengeMessage.ChallengeSliceStartIndex), int(incomingChallengeMessage.ChallengeSliceEndIndex))
 	messageType := model.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE
 	TimestampChallengeVerified := time.Now().Unix()
 	TimeVerifyStorageChallengeInSeconds := helper.ComputeElapsedTimeInSecondsBetweenTwoDatetimes(incomingChallengeMessage.TimestampChallengeSent, TimestampChallengeVerified)
