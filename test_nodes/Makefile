@@ -1,5 +1,8 @@
+build:
+	go build -o storage-challenges ../
+
 migrate:
-	STORAGE_CHALLENGE_CONFIG=node0 ./storage-challenges --migrate-seed Enter
+	STORAGE_CHALLENGE_CONFIG=node0 ./storage-challenges --migrate-seed
 
 start-node0:
 	# node0

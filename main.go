@@ -38,12 +38,11 @@ func main() {
 		}
 	})
 
-	fmt.Println(migrate, seed)
-
 	if migrate {
 		AutoMigrate(seed)
 		return
 	}
+
 	cfg := config.Config{}
 	if err := cfg.Load(); err != nil {
 		panic(fmt.Sprintf("could not load config data: %v", err))
