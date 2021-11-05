@@ -46,10 +46,9 @@ func (r *Remoter) Start() {
 
 func (r *Remoter) GracefulStop() {
 	for name, pid := range r.mapPID {
-		r.context.Stop(pid)
+		r.context.StopFuture(pid).Wait()
 		delete(r.mapPID, name)
 	}
-	r.remoter.Shutdown(true)
 }
 
 type Config struct {

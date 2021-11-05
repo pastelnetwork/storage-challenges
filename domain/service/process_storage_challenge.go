@@ -27,7 +27,13 @@ func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incom
 		return err
 	}
 
-	challengeFileData, err := file.ReadFileIntoMemory(incomingChallengeMessage.FileHashToChallenge)
+	filePath, err := s.repository.GetFilePathFromFileHash(ctx, incomingChallengeMessage.FileHashToChallenge)
+	if err != nil {
+		log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Error("could not get symbol file path from file hash", actorLog.String("s.repository.GetFilePathFromFileHash", err.Error()))
+		return err
+	}
+
+	challengeFileData, err := file.ReadFileIntoMemory(filePath)
 	if err != nil {
 		log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Error("could not read file data in to memory", actorLog.String("file.ReadFileIntoMemory", err.Error()))
 		return err
@@ -85,11 +91,6 @@ func (s *storageChallenge) computeHashofFileSlice(file_data []byte, challenge_sl
 }
 
 func (s *storageChallenge) sendVerifyStorageChallenge(ctx appcontext.Context, challengeMessage *model.ChallengeMessage) error {
-	rankedXorDistances, err := s.repository.GetTopRankedXorDistanceMasternodeToFileHash(ctx, challengeMessage.FileHashToChallenge, 6, s.nodeID)
-	if err != nil {
-		return err
-	}
-
 	masternodes, err := s.pclient.MasterNodesExtra(ctx)
 	if err != nil {
 		return err
@@ -101,14 +102,12 @@ func (s *storageChallenge) sendVerifyStorageChallenge(ctx appcontext.Context, ch
 	}
 
 	verifierMasterNodesClientPIDs := []*actor.PID{}
-	for _, xorDistance := range rankedXorDistances {
-		var mn pastel.MasterNode
-		var ok bool
-		if mn, ok = mapMasternodes[xorDistance.MasternodeID]; !ok {
-			return fmt.Errorf("cannot get masternode info of masternode id %v", xorDistance.MasternodeID)
-		}
-		verifierMasterNodesClientPIDs = append(verifierMasterNodesClientPIDs, actor.NewPID(mn.ExtAddress, "domain-service"))
+	var mn pastel.MasterNode
+	var ok bool
+	if mn, ok = mapMasternodes[challengeMessage.RespondingMasternodeID]; !ok {
+		return fmt.Errorf("cannot get masternode info of masternode id %v", challengeMessage.RespondingMasternodeID)
 	}
+	verifierMasterNodesClientPIDs = append(verifierMasterNodesClientPIDs, actor.NewPID(mn.ExtAddress, "domain-service"))
 
 	return s.remoter.Send(ctx, s.domainActorID, &verifyStotageChallengeMsg{VerifierMasterNodesClientPIDs: verifierMasterNodesClientPIDs, ChallengeMessage: challengeMessage})
 }

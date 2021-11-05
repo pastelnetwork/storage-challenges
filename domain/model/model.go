@@ -84,6 +84,8 @@ type XORDistance struct {
 	MasternodeID  string
 	FileHash      string
 	XorDistance   uint64
+	Masternode    *Masternode
+	SymbolFile    *SymbolFile
 }
 
 func (XORDistance) TableName() string {

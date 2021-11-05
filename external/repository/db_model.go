@@ -83,3 +83,16 @@ func mapXORDistances(in []*XORDistance) []*model.XORDistance {
 
 	return models
 }
+
+func mapSymbolFile(in *SymbolFile) *model.SymbolFile {
+	return in.SymbolFile
+}
+
+func mapSymbolFiles(in []*SymbolFile) []*model.SymbolFile {
+	var models = []*model.SymbolFile{}
+	for _, symbolFile := range in {
+		models = append(models, mapSymbolFile(symbolFile))
+	}
+
+	return models
+}

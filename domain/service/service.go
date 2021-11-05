@@ -16,6 +16,7 @@ type Config struct {
 	MasternodeID                    string
 	PastelClient                    pastel.Client
 	StorageChallengeExpiredDuration time.Duration
+	NumberOfChallengeReplicas       int
 }
 
 type storageChallenge struct {
@@ -25,6 +26,7 @@ type storageChallenge struct {
 	nodeID                           string
 	pclient                          pastel.Client
 	storageChallengeExpiredAsSeconds int64
+	numberOfChallengeReplicas        int
 }
 
 func NewStorageChallenge(cfg Config) StorageChallenge {
