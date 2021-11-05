@@ -17,12 +17,14 @@ import (
 	"github.com/pastelnetwork/storage-challenges/external/message"
 	"github.com/pastelnetwork/storage-challenges/external/repository"
 	"github.com/pastelnetwork/storage-challenges/external/storage"
+	testnodes "github.com/pastelnetwork/storage-challenges/test_nodes"
 )
 
 func main() {
-	var migrate, seed bool
+	var migrate, seed, test bool
 	flag.Bool("migrate", false, "migration only")
 	flag.Bool("migrate-seed", false, "migration with seeding dummy data")
+	flag.Bool("test", false, "run node in test mode for debugging purpose")
 	flag.Parse()
 	flag.VisitAll(func(f *flag.Flag) {
 		if f.Name == "migrate" {
@@ -34,6 +36,11 @@ func main() {
 			if f.Value.String() == "true" {
 				migrate = true
 				seed = true
+			}
+		}
+		if f.Name == "test" {
+			if f.Value.String() == "true" {
+				test = true
 			}
 		}
 	})
@@ -61,7 +68,12 @@ func main() {
 		panic(fmt.Sprintf("could not connect to database %v", err))
 	}
 
-	pastelClient := pastel.NewClient(cfg.PastelClient)
+	var pastelClient pastel.Client
+	if test {
+		pastelClient = testnodes.NewMockPastelClient()
+	} else {
+		pastelClient = pastel.NewClient(cfg.PastelClient)
+	}
 
 	secInfo := &alts.SecInfo{
 		PastelID:   cfg.MasternodePastelID,
