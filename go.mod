@@ -11,6 +11,7 @@ require (
 	github.com/pastelnetwork/gonode/common v0.0.0
 	github.com/pastelnetwork/gonode/pastel v0.0.0
 	github.com/spf13/viper v1.9.0
+	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	google.golang.org/api v0.59.0
 	google.golang.org/genproto v0.0.0-20211027162914-98a5263abeca
@@ -23,6 +24,7 @@ require (
 	cloud.google.com/go v0.97.0 // indirect
 	github.com/DataDog/zstd v1.4.8 // indirect
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-errors/errors v1.1.1 // indirect
@@ -43,11 +45,13 @@ require (
 	github.com/otrv4/ed448 v0.0.0-20210127123821-203e597250c3 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
@@ -62,6 +66,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
 replace (
