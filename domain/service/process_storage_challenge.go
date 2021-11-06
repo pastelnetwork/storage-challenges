@@ -107,7 +107,7 @@ func (s *storageChallenge) sendVerifyStorageChallenge(ctx appcontext.Context, ch
 	if mn, ok = mapMasternodes[challengeMessage.RespondingMasternodeID]; !ok {
 		return fmt.Errorf("cannot get masternode info of masternode id %v", challengeMessage.RespondingMasternodeID)
 	}
-	verifierMasterNodesClientPIDs = append(verifierMasterNodesClientPIDs, actor.NewPID(mn.ExtAddress, "domain-service"))
+	verifierMasterNodesClientPIDs = append(verifierMasterNodesClientPIDs, actor.NewPID(mn.ExtAddress, "storage-challenge"))
 
 	return s.remoter.Send(ctx, s.domainActorID, &verifyStotageChallengeMsg{VerifierMasterNodesClientPIDs: verifierMasterNodesClientPIDs, ChallengeMessage: challengeMessage})
 }

@@ -95,6 +95,7 @@ func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, cha
 func (s *storageChallenge) sendprocessStorageChallenge(ctx appcontext.Context, challengeMessage *model.ChallengeMessage) error {
 	masternodes, err := s.pclient.MasterNodesExtra(ctx)
 	if err != nil {
+		log.With(actorLog.String("ACTOR", "sendprocessStorageChallenge")).Warn("could not get masternode infor data", actorLog.String("s.pclient.MasterNodesExtra", err.Error()))
 		return err
 	}
 
@@ -106,9 +107,11 @@ func (s *storageChallenge) sendprocessStorageChallenge(ctx appcontext.Context, c
 	var mn pastel.MasterNode
 	var ok bool
 	if mn, ok = mapMasternodes[challengeMessage.ChallengingMasternodeID]; !ok {
-		return fmt.Errorf("cannot get masternode info of masternode id %v", challengeMessage.ChallengingMasternodeID)
+		err = fmt.Errorf("cannot get masternode info of masternode id %v", challengeMessage.ChallengingMasternodeID)
+		log.With(actorLog.String("ACTOR", "sendprocessStorageChallenge")).Warn(fmt.Sprintf("could not get masternode infor of %v", challengeMessage.ChallengingMasternodeID), actorLog.String("mapMasternodes[challengeMessage.ChallengingMasternodeID]", err.Error()))
+		return err
 	}
-	processingMasterNodesClientPID := actor.NewPID(mn.ExtAddress, "domain-service")
+	processingMasterNodesClientPID := actor.NewPID(mn.ExtAddress, "storage-challenge")
 
 	return s.remoter.Send(ctx, s.domainActorID, &processStotageChallengeMsg{ProcessingMasterNodesClientPID: processingMasterNodesClientPID, ChallengeMessage: challengeMessage})
 }

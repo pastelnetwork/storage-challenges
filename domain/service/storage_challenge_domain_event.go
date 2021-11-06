@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	actorLog "github.com/AsynkronIT/protoactor-go/log"
 	"github.com/pastelnetwork/storage-challenges/application/dto"
 	"github.com/pastelnetwork/storage-challenges/domain/model"
 )
@@ -49,6 +50,8 @@ func (d *domainActor) Receive(context actor.Context) {
 		d.OnSendVerifyStorageChallengeMessage(context, msg)
 	case *processStotageChallengeMsg:
 		d.OnSendProcessStorageChallengeMessage(context, msg)
+	default:
+		log.With(actorLog.String("ACTOR", "DOMAIN ACTOR")).Debug(fmt.Sprintf("Action not hanled %#v", msg))
 	}
 }
 

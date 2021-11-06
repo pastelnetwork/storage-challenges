@@ -18,7 +18,7 @@ type CommonModel struct {
 
 type Masternode struct {
 	CommonModel
-	MasternodeID                     string `gorm:"primaryKey;unique"`
+	NodeID                           string `gorm:"primaryKey;unique"`
 	MasternodeIPAddress              string `gorm:"column:masternode_ip_address"`
 	TotalChallengesIssued            uint
 	TotalChallengesRespondedTo       uint
@@ -51,12 +51,12 @@ type SymbolFile struct {
 
 type XORDistance struct {
 	CommonModel
-	XORDistanceID string `gorm:"primaryKey;unique;column:xor_distance_id"`
-	MasternodeID  string
-	FileHash      string
-	XORDistance   uint64     `gorm:"column:xor_distance"`
-	SymbolFile    SymbolFile `gorm:"foreignKey:MasternodeID"`
-	Masternode    Masternode `gorm:"foreignKey:FileHash"`
+	XORDistanceID  string `gorm:"primaryKey;unique;column:xor_distance_id"`
+	MasternodeID   string
+	SymbolFileHash string
+	XORDistance    uint64     `gorm:"column:xor_distance"`
+	SymbolFile     SymbolFile `gorm:"foreignKey:SymbolFileHash;references:FileHash"`
+	Masternode     Masternode `gorm:"foreignKey:MasternodeID;references:NodeID"`
 }
 
 func (XORDistance) TableName() string { return "xor_distances" }
@@ -79,7 +79,8 @@ type Challenge struct {
 	ChallengeResponseHash          string
 	PastelBlock                    PastelBlock `gorm:"foreignKey:BlockHashWhenChallengeSent"`
 	SymbolFile                     SymbolFile  `gorm:"foreignKey:FileHashToChallenge"`
-	Masternode                     Masternode  `gorm:"foreignKey:ChallengingMasternodeID; foreignKey:RespondingMasternodeID"`
+	ChallengingMasternode          Masternode  `gorm:"foreignKey:ChallengingMasternodeID"`
+	RespondingMasternode           Masternode  `gorm:"foreignKey:RespondingMasternodeID"`
 }
 
 type ChallengeMessage struct {
@@ -101,8 +102,9 @@ type ChallengeMessage struct {
 	ChallengeID                   string
 	PastelBlock                   PastelBlock `gorm:"foreignKey:BlockHashWhenChallengeSent"`
 	SymbolFile                    SymbolFile  `gorm:"foreignKey:FileHashToChallenge"`
-	Masternode                    Masternode  `gorm:"foreignKey:ChallengingMasternodeID; foreignKey:RespondingMasternodeID"`
-	Challenge                     Challenge   `gorm:"foreignKey:ChallengeID"`
+	ChallengingMasternode         Masternode  `gorm:"foreignKey:ChallengingMasternodeID"`
+	RespondingMasternode          Masternode  `gorm:"foreignKey:RespondingMasternodeID"`
+	Challenge                     Challenge   `gorm:"association_foreignKey:ChallengeID;references:ChallengeID"`
 }
 
 func AutoMigrate(seeding bool) {
@@ -158,60 +160,82 @@ func dataSeeding(db *gorm.DB) (err error) {
 
 	mns := []Masternode{
 		{
-			MasternodeID:        "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
+			NodeID:              "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
 			MasternodeIPAddress: "localhost:9000",
 		},
 		{
-			MasternodeID:        "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
+			NodeID:              "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
 			MasternodeIPAddress: "localhost:9001",
 		},
 		{
-			MasternodeID:        "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
+			NodeID:              "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
 			MasternodeIPAddress: "localhost:9002",
 		},
 		{
-			MasternodeID:        "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
+			NodeID:              "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
 			MasternodeIPAddress: "localhost:9003",
 		},
 	}
 
 	h := sha256.New()
-	h.Write([]byte("sample_file_data"))
-	filePathHash := h.Sum(nil)
+	fileContent := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"
+	h.Write([]byte(fileContent))
+	fileHash := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	fileLenght := len(fileContent)
 
-	err = dbTx.Model(&Masternode{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "masternode_id"}}, UpdateAll: true}).Create(mns).Error
+	err = dbTx.Model(&Masternode{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "node_id"}}, UpdateAll: true}).Create(mns).Error
 	if err != nil {
 		return
 	}
 
 	xds := []XORDistance{
 		{
-			XORDistanceID: "xor_distance_id_1",
-			FileHash:      base64.StdEncoding.EncodeToString(filePathHash),
-			MasternodeID:  "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
-			XORDistance:   1,
+			XORDistanceID:  "xor_distance_id_1",
+			SymbolFileHash: fileHash,
+
+			MasternodeID: "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
+			XORDistance:  1,
 		},
 		{
-			XORDistanceID: "xor_distance_id_2",
-			FileHash:      base64.StdEncoding.EncodeToString(filePathHash),
-			MasternodeID:  "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
-			XORDistance:   2,
+			XORDistanceID:  "xor_distance_id_2",
+			SymbolFileHash: fileHash,
+
+			MasternodeID: "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
+			XORDistance:  2,
 		},
 		{
-			XORDistanceID: "xor_distance_id_3",
-			FileHash:      base64.StdEncoding.EncodeToString(filePathHash),
-			MasternodeID:  "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
-			XORDistance:   3,
+			XORDistanceID:  "xor_distance_id_3",
+			SymbolFileHash: fileHash,
+
+			MasternodeID: "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
+			XORDistance:  3,
 		},
 		{
-			XORDistanceID: "xor_distance_id_4",
-			FileHash:      base64.StdEncoding.EncodeToString(filePathHash),
-			MasternodeID:  "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
-			XORDistance:   4,
+			XORDistanceID:  "xor_distance_id_4",
+			SymbolFileHash: fileHash,
+
+			MasternodeID: "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
+			XORDistance:  4,
 		},
 	}
 
 	err = dbTx.Model(&XORDistance{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "xor_distance_id"}}, UpdateAll: true}).Create(xds).Error
+	if err != nil {
+		return
+	}
+
+	sfs := []SymbolFile{
+		{
+			FileHash:          fileHash,
+			FileLengthInBytes: uint(fileLenght),
+			OriginalFilePath:  "test_symbol_files/symbol_file",
+		},
+	}
+
+	err = dbTx.Model(&SymbolFile{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "file_hash"}}, UpdateAll: true}).Create(sfs).Error
+	if err != nil {
+		return
+	}
 
 	return err
 }

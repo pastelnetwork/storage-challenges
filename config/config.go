@@ -11,12 +11,12 @@ import (
 )
 
 type Config struct {
-	Version                    string          `yaml:"version"`
-	Remoter                    *message.Config `yaml:"remoter,omitempty"`
-	MasternodePastelID         string          `yaml:"masternode_id"`
-	MasternodePastelPassphrase string          `yaml:"masternode_passphrase"`
-	Database                   *storage.Config `yaml:"database,omitempty"`
-	PastelClient               *pastel.Config  `yaml:"pastel_client,omitempty"`
+	Version                    string          `mapstructure:"version"`
+	Remoter                    *message.Config `mapstructure:"remoter"`
+	Database                   *storage.Config `mapstructure:"database"`
+	MasternodePastelID         string          `mapstructure:"masternode_id"`
+	MasternodePastelPassphrase string          `mapstructure:"masternode_passphrase"`
+	PastelClient               *pastel.Config  `mapstructure:"pastel_client,omitempty"`
 
 	isLoaded bool
 }

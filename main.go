@@ -98,6 +98,7 @@ func main() {
 		Repository:                      repo,
 		MasternodeID:                    cfg.MasternodePastelID,
 		StorageChallengeExpiredDuration: 10 * time.Second,
+		PastelClient:                    pastelClient,
 	})
 
 	_, err = remoter.RegisterActor(appactor.NewStorageChallengeActor(domainService, store), "storage-challenge")

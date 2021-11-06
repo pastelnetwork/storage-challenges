@@ -1,6 +1,7 @@
 package testnodes
 
 import (
+	"encoding/hex"
 	"log"
 
 	"github.com/pastelnetwork/gonode/pastel"
@@ -37,5 +38,31 @@ func NewMockPastelClient() pastel.Client {
 		log.Println("MOCK PASTEL CLIENT -- Verify algorithm param:", algorithm)
 		return true
 	})).Return(true, nil)
+
+	mc.On("GetBlockCount", mock.Anything).Run(func(args mock.Arguments) {
+		log.Println("MOCK PASTEL CLIENT -- GetBlockHash")
+	}).Return(int32(1), nil)
+
+	mc.On("GetBlockHash", mock.Anything, mock.MatchedBy(func(blockHeight int32) bool {
+		log.Println("MOCK PASTEL CLIENT -- GetBlockHash blockHeight param:", blockHeight)
+		return true
+	})).Return(hex.EncodeToString([]byte("mock block hash")), nil)
+
+	mc.On("MasterNodesExtra", mock.Anything).Run(func(args mock.Arguments) {
+		log.Println("MOCK PASTEL CLIENT -- MasterNodesExtra")
+	}).Return(pastel.MasterNodes{pastel.MasterNode{
+		ExtAddress: "localhost:9000",
+		ExtKey:     "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
+	}, {
+		ExtAddress: "localhost:9001",
+		ExtKey:     "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
+	}, {
+		ExtAddress: "localhost:9002",
+		ExtKey:     "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
+	}, {
+		ExtAddress: "localhost:9003",
+		ExtKey:     "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
+	}}, nil)
+
 	return mc
 }
