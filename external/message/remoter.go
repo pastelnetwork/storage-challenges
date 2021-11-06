@@ -30,7 +30,7 @@ func (r *Remoter) RegisterActor(a actor.Actor, name string) (*actor.PID, error) 
 		return nil, err
 	}
 	r.mapPID[name] = pid
-	return nil, nil
+	return pid, nil
 }
 
 func (r *Remoter) DeregisterActor(name string) {
@@ -52,10 +52,10 @@ func (r *Remoter) GracefulStop() {
 }
 
 type Config struct {
-	Host             string `yaml:"host"`
-	Port             int    `yaml:"port"`
-	clientSecureCres credentials.TransportCredentials
-	serverSecureCres credentials.TransportCredentials
+	Host             string                           `mapstructure:"host"`
+	Port             int                              `mapstructure:"port"`
+	clientSecureCres credentials.TransportCredentials `mapstructure:"-"`
+	serverSecureCres credentials.TransportCredentials `mapstructure:"-"`
 }
 
 func (c *Config) WithClientSecureCres(s credentials.TransportCredentials) *Config {

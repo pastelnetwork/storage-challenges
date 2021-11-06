@@ -62,7 +62,7 @@ type PastelBlock struct {
 }
 
 type Masternode struct {
-	MasternodeID                    string
+	NodeID                          string
 	MasternodeIPAddress             string
 	TotalChallengesIssued           uint
 	TotalChallengesRespondedTo      uint
@@ -80,12 +80,12 @@ type SymbolFile struct {
 }
 
 type XORDistance struct {
-	XorDistanceID string
-	MasternodeID  string
-	FileHash      string
-	XorDistance   uint64
-	Masternode    *Masternode
-	SymbolFile    *SymbolFile
+	XORDistanceID  string `gorm:"column:xor_distance_id"`
+	MasternodeID   string
+	SymbolFileHash string
+	XorDistance    uint64
+	Masternode     *Masternode `gorm:"foreignKey:MasternodeID;references:NodeID"`
+	SymbolFile     *SymbolFile `gorm:"foreignKey:SymbolFileHash;references:FileHash"`
 }
 
 func (XORDistance) TableName() string {

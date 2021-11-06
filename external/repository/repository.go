@@ -29,8 +29,8 @@ func (r *repository) GetXorDistances(ctx appcontext.Context) ([]*model.XORDistan
 
 func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, fileHash string, numberOfChallengeReplicas int, exceptMasternodeIDs ...string) (list []*model.XORDistance, err error) {
 	db := ctx.GetDBTx()
-	var xorDistances []*XORDistance
-	err = db.Preload("Masternode").Where("file_hash = ?", fileHash).Not(map[string]interface{}{"masternode_id": exceptMasternodeIDs}).Order("xor_distance ASC").Limit(numberOfChallengeReplicas).Find(&xorDistances).Error
+	var xorDistances = make([]*XORDistance, 0)
+	err = db.Where("symbol_file_hash = ?", fileHash).Not(map[string]interface{}{"masternode_id": exceptMasternodeIDs}).Order("xor_distance ASC").Limit(numberOfChallengeReplicas).Preload("Masternode").Find(&xorDistances).Error
 	return mapXORDistances(xorDistances), err
 }
 
