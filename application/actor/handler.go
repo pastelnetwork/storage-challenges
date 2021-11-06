@@ -34,6 +34,11 @@ func (s *storageChallengeActor) Receive(actorCtx actor.Context) {
 
 	var ctx = appcontext.FromContext(context.Background()).WithActorContext(actorCtx).WithDBTx(dbTx)
 	switch msg := actorCtx.Message().(type) {
+	case *dto.GenerateStorageChallengeRequest:
+		_, err := s.GenerateStorageChallenges(ctx, msg)
+		if err == nil {
+			commit = true
+		}
 	case *dto.StorageChallengeRequest:
 		_, err := s.StorageChallenge(ctx, msg)
 		if err == nil {
@@ -50,18 +55,29 @@ func (s *storageChallengeActor) Receive(actorCtx actor.Context) {
 	}
 }
 
+func (s *storageChallengeActor) GenerateStorageChallenges(ctx appcontext.Context, req *dto.GenerateStorageChallengeRequest) (resp *dto.GenerateStorageChallengeReply, err error) {
+	log.Printf("GenerateStorageChallenge handler")
+	// validate request body
+	es := validateGenerateStorageChallengeData(req)
+	if err := validationErrorStackWrap(es); err != nil {
+		return &dto.GenerateStorageChallengeReply{}, err
+	}
+
+	// calling domain service to process bussiness logics
+	err = s.service.GenerateStorageChallenges(ctx, req.GetChallengingMasternodeId(), int(req.GetChallengesPerMasternodePerBlock()))
+	return &dto.GenerateStorageChallengeReply{}, err
+}
+
 func (s *storageChallengeActor) StorageChallenge(ctx appcontext.Context, req *dto.StorageChallengeRequest) (resp *dto.StorageChallengeReply, err error) {
 	log.Printf("StorageChallenge handler")
 	// validate request body
 	es := validateStorageChallengeData(req.GetData(), "Data")
 	if err := validationErrorStackWrap(es); err != nil {
-		// TODO: send response validation failed to challenger: get address of challenger, response error by ctx.Send(challengeraddressPID, err)
 		return &dto.StorageChallengeReply{Data: req.GetData()}, err
 	}
 
 	// calling domain service to process bussiness logics
 	err = s.service.ProcessStorageChallenge(ctx, mapChallengeMessage(req.GetData()))
-	// TODO: send response validation failed to challenger and verifyer: get address of challenger and verifyer, send message by ctx.Send(challengeraddressPID, err)
 	return &dto.StorageChallengeReply{Data: req.GetData()}, err
 }
 
@@ -74,6 +90,5 @@ func (s *storageChallengeActor) VerifyStorageChallenge(ctx appcontext.Context, r
 	}
 	// calling domain service to process bussiness logics
 	err = s.service.VerifyStorageChallenge(ctx, mapChallengeMessage(req.GetData()))
-	// TODO: send response validation failed to challenger and verifyer: get address of challenger and verifyer, send message by ctx.Send(challengeraddressPID, err)
 	return &dto.VerifyStorageChallengeReply{Data: req.GetData()}, err
 }

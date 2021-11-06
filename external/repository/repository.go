@@ -1,9 +1,6 @@
 package repository
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/pastelnetwork/storage-challenges/domain/model"
 	appcontext "github.com/pastelnetwork/storage-challenges/utils/context"
 	"gorm.io/gorm/clause"
@@ -19,23 +16,21 @@ func (r *repository) GetFilePathFromFileHash(ctx appcontext.Context, file_hash_s
 	return filePath, err
 }
 
+func (r *repository) GetSymbolFiles(ctx appcontext.Context) (list []*model.SymbolFile, err error) {
+	db := ctx.GetDBTx()
+	var symbolFiles []*SymbolFile
+	err = db.Model(&SymbolFile{}).Find(&symbolFiles).Error
+	return mapSymbolFiles(symbolFiles), err
+}
+
 func (r *repository) GetXorDistances(ctx appcontext.Context) ([]*model.XORDistance, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, fileHash string, numberOfChallengeReplicas int, exceptMasternodeIDs ...string) ([]*model.XORDistance, error) {
-	var queryStatement, queryStatementPrepared string
-	if len(exceptMasternodeIDs) == 0 {
-		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances WHERE file_hash = %s)) WHERE rnk <= %v"
-		queryStatementPrepared = fmt.Sprintf(queryStatement, fileHash, numberOfChallengeReplicas)
-	} else {
-		queryStatement = "SELECT xor_distance_id, masternode_id, file_hash, xor_distance FROM (SELECT *, RANK() OVER (PARTITION BY file_hash ORDER BY xor_distance ASC) as rnk FROM (SELECT * FROM xor_distances WHERE file_hash = %s AND masternode_id NOT IN (%s))) WHERE rnk <= %v"
-		queryStatementPrepared = fmt.Sprintf(queryStatement, fileHash, strings.Join(exceptMasternodeIDs, ","), numberOfChallengeReplicas)
-	}
+func (r *repository) GetTopRankedXorDistanceMasternodeToFileHash(ctx appcontext.Context, fileHash string, numberOfChallengeReplicas int, exceptMasternodeIDs ...string) (list []*model.XORDistance, err error) {
 	db := ctx.GetDBTx()
-
 	var xorDistances []*XORDistance
-	err := db.Model(&model.XORDistance{}).Raw(queryStatementPrepared).Scan(&xorDistances).Error
+	err = db.Preload("Masternode").Where("file_hash = ?", fileHash).Not(map[string]interface{}{"masternode_id": exceptMasternodeIDs}).Order("xor_distance ASC").Limit(numberOfChallengeReplicas).Find(&xorDistances).Error
 	return mapXORDistances(xorDistances), err
 }
 

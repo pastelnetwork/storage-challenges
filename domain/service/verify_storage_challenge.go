@@ -17,7 +17,13 @@ func (s *storageChallenge) VerifyStorageChallenge(ctx appcontext.Context, incomi
 		return err
 	}
 
-	challengeFileData, err := file.ReadFileIntoMemory(incomingChallengeMessage.FileHashToChallenge)
+	filePath, err := s.repository.GetFilePathFromFileHash(ctx, incomingChallengeMessage.FileHashToChallenge)
+	if err != nil {
+		log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Error("could not get symbol file path from file hash", actorLog.String("s.repository.GetFilePathFromFileHash", err.Error()))
+		return err
+	}
+
+	challengeFileData, err := file.ReadFileIntoMemory(filePath)
 	if err != nil {
 		log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Error("could not read file data in to memory", actorLog.String("file.ReadFileIntoMemory", err.Error()))
 		return err

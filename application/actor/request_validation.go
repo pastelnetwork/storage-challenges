@@ -6,6 +6,26 @@ import (
 	"github.com/pastelnetwork/storage-challenges/application/dto"
 )
 
+func validateGenerateStorageChallengeData(req *dto.GenerateStorageChallengeRequest) validationErrorStack {
+	var key string
+	var es validationErrorStack = make([]*validationError, 0)
+	if req.GetChallengingMasternodeId() == "" {
+		es = append(es, &validationError{
+			keys:   []string{joinKeyPart(key, "ChallengingMasternodeId")},
+			reason: reasonInvalidEmptyValue,
+		})
+	}
+
+	if req.GetChallengesPerMasternodePerBlock() <= 0 {
+		es = append(es, &validationError{
+			keys:   []string{joinKeyPart(key, "ChallengesPerMasternodePerBlock")},
+			reason: "invalid negative or zero value number",
+		})
+	}
+
+	return es
+}
+
 func validateStorageChallengeData(req *dto.StorageChallengeData, key string) validationErrorStack {
 	var es validationErrorStack = make([]*validationError, 0)
 

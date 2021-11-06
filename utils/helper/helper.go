@@ -22,11 +22,11 @@ func FillSliceWithFunctionOutput(vs []string, f func() string) []string {
 	return vsm
 }
 
-func GetHashFromString(input_string string) string {
+func GetHashFromString(inputString string) string {
 	h := sha3.New256()
-	h.Write([]byte(input_string))
-	sha256_hash_of_input_string := hex.EncodeToString(h.Sum(nil))
-	return sha256_hash_of_input_string
+	h.Write([]byte(inputString))
+	sha256HashOfInputString := hex.EncodeToString(h.Sum(nil))
+	return sha256HashOfInputString
 }
 
 func GenerateFakeBlockHashes(numberOfBlockToMake int) []string {
@@ -42,16 +42,16 @@ func ComputeElapsedTimeInSecondsBetweenTwoDatetimes(start, end int64) float64 {
 }
 
 func ComputeXorDistanceBetweenTwoStrings(string1 string, string2 string) uint64 {
-	string1_hash := GetHashFromString(string1)
-	string2_hash := GetHashFromString(string2)
-	string_1_hash_as_bytes := []byte(string1_hash)
-	string_2_hash_as_bytes := []byte(string2_hash)
-	xor_distance, _ := xordistance.XORBytes(string_1_hash_as_bytes, string_2_hash_as_bytes)
-	xor_distance_as_int := xordistance.BytesToInt(xor_distance)
-	xor_distance_as_string := fmt.Sprint(xor_distance_as_int)
-	xor_distance_as_string_rescaled := fmt.Sprint(xor_distance_as_string[:len(xor_distance_as_string)-137])
-	xor_distance_as_uint64, _ := strconv.ParseUint(xor_distance_as_string_rescaled, 10, 64)
-	return xor_distance_as_uint64
+	string1Hash := GetHashFromString(string1)
+	string2Hash := GetHashFromString(string2)
+	string1HashAsBytes := []byte(string1Hash)
+	string2HashAsBytes := []byte(string2Hash)
+	xorDistance, _ := xordistance.XORBytes(string1HashAsBytes, string2HashAsBytes)
+	xorDistanceAsInt := xordistance.BytesToInt(xorDistance)
+	xorDistanceAsString := fmt.Sprint(xorDistanceAsInt)
+	xorDistanceAsStringRescaled := fmt.Sprint(xorDistanceAsString[:len(xorDistanceAsString)-137])
+	xorDistanceAsUint64, _ := strconv.ParseUint(xorDistanceAsStringRescaled, 10, 64)
+	return xorDistanceAsUint64
 }
 
 func GenerateFakePastelMnID() string {

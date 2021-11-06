@@ -30,7 +30,7 @@ type validationError struct {
 }
 
 func (e *validationError) Error() string {
-	return fmt.Sprintf("%s: %s", e.reason)
+	return fmt.Sprintf("%s: %s", e.keys.String(), e.reason)
 }
 
 type validationErrorStack []*validationError

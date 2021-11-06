@@ -70,6 +70,7 @@ func main() {
 
 	var pastelClient pastel.Client
 	if test {
+		log.Println("USING TEST PASTEL CLIENT")
 		pastelClient = testnodes.NewMockPastelClient()
 	} else {
 		pastelClient = pastel.NewClient(cfg.PastelClient)
@@ -87,6 +88,7 @@ func main() {
 			WithClientSecureCres(credentials.NewClientCreds(pastelClient, secInfo)).
 			WithServerSecureCres(credentials.NewServerCreds(pastelClient, secInfo)),
 	)
+	remoter.Start()
 	defer remoter.GracefulStop()
 
 	repo := repository.New()
