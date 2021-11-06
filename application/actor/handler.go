@@ -34,6 +34,11 @@ func (s *storageChallengeActor) Receive(actorCtx actor.Context) {
 
 	var ctx = appcontext.FromContext(context.Background()).WithActorContext(actorCtx).WithDBTx(dbTx)
 	switch msg := actorCtx.Message().(type) {
+	case *dto.GenerateStorageChallengeRequest:
+		_, err := s.GenerateStorageChallenges(ctx, msg)
+		if err == nil {
+			commit = true
+		}
 	case *dto.StorageChallengeRequest:
 		_, err := s.StorageChallenge(ctx, msg)
 		if err == nil {

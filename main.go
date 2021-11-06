@@ -88,6 +88,7 @@ func main() {
 			WithClientSecureCres(credentials.NewClientCreds(pastelClient, secInfo)).
 			WithServerSecureCres(credentials.NewServerCreds(pastelClient, secInfo)),
 	)
+	remoter.Start()
 	defer remoter.GracefulStop()
 
 	repo := repository.New()
