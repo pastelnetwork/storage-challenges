@@ -70,6 +70,6 @@ require (
 )
 
 replace (
-	github.com/pastelnetwork/gonode/common v0.0.0 => ../gonode/common
-	github.com/pastelnetwork/gonode/pastel v0.0.0 => ../gonode/pastel
+	github.com/pastelnetwork/gonode/common => ../gonode/common
+	github.com/pastelnetwork/gonode/pastel => ../gonode/pastel
 )
