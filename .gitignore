@@ -1,4 +1,6 @@
 .vscode
+.idea
 test_nodes/storage-challenge*
+storage-challenges
 
 vendor

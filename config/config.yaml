@@ -11,3 +11,4 @@ database:
   debug: true
 
 masternode_id: jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw
+masternode_passphrase: example_passphrase
