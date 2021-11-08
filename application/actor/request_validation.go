@@ -81,7 +81,7 @@ func validateStorageChallengeDataChallengeFile(req *dto.StorageChallengeDataChal
 	if req.GetChallengeSliceStartIndex() >= req.GetChallengeSliceEndIndex() {
 		es = append(es, &validationError{
 			keys:   []string{joinKeyPart(key, "ChallengeSliceStartIndex"), joinKeyPart(key, "ChallengeSliceEndIndex")},
-			reason: "ChallengeSliceStartIndex could not be larger than or equal ChallengeSliceEndIndex",
+			reason: "ChallengeSliceStartIndex could not be larger than or equal to ChallengeSliceEndIndex",
 		})
 	}
 
