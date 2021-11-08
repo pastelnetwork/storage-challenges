@@ -52,19 +52,19 @@ func (r *Remoter) GracefulStop() {
 }
 
 type Config struct {
-	Host             string                           `mapstructure:"host"`
-	Port             int                              `mapstructure:"port"`
-	clientSecureCres credentials.TransportCredentials `mapstructure:"-"`
-	serverSecureCres credentials.TransportCredentials `mapstructure:"-"`
+	Host              string                           `mapstructure:"host"`
+	Port              int                              `mapstructure:"port"`
+	clientSecureCreds credentials.TransportCredentials `mapstructure:"-"`
+	serverSecureCreds credentials.TransportCredentials `mapstructure:"-"`
 }
 
-func (c *Config) WithClientSecureCres(s credentials.TransportCredentials) *Config {
-	c.clientSecureCres = s
+func (c *Config) WithClientSecureCreds(s credentials.TransportCredentials) *Config {
+	c.clientSecureCreds = s
 	return c
 }
 
-func (c *Config) WithServerSecureCres(s credentials.TransportCredentials) *Config {
-	c.serverSecureCres = s
+func (c *Config) WithServerSecureCreds(s credentials.TransportCredentials) *Config {
+	c.serverSecureCreds = s
 	return c
 }
 
@@ -76,15 +76,15 @@ func NewRemoter(system *actor.ActorSystem, cfg Config) *Remoter {
 		cfg.Port = 9000
 	}
 	remoterConfig := remote.Configure(cfg.Host, cfg.Port)
-	clientCres := []grpc.DialOption{grpc.WithBlock()}
-	serverCres := []grpc.ServerOption{}
-	if cfg.clientSecureCres != nil {
-		clientCres = append(clientCres, grpc.WithTransportCredentials(cfg.clientSecureCres))
+	clientCreds := []grpc.DialOption{grpc.WithBlock()}
+	serverCreds := []grpc.ServerOption{}
+	if cfg.clientSecureCreds != nil {
+		clientCreds = append(clientCreds, grpc.WithTransportCredentials(cfg.clientSecureCreds))
 	}
-	if cfg.serverSecureCres != nil {
-		serverCres = append(serverCres, grpc.Creds(cfg.serverSecureCres))
+	if cfg.serverSecureCreds != nil {
+		serverCreds = append(serverCreds, grpc.Creds(cfg.serverSecureCreds))
 	}
-	remoterConfig.WithDialOptions(clientCres...).WithServerOptions(serverCres...)
+	remoterConfig.WithDialOptions(clientCreds...).WithServerOptions(serverCreds...)
 	return &Remoter{
 		remoter: remote.NewRemote(system, remoterConfig),
 		context: system.Root,

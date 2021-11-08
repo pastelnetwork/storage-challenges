@@ -9,53 +9,53 @@ import (
 	"github.com/pastelnetwork/storage-challenges/domain/model"
 )
 
-type verifyStotageChallengeMsg struct {
+type verifyStorageChallengeMsg struct {
 	VerifierMasterNodesClientPIDs []*actor.PID
 	*model.ChallengeMessage
 }
 
-func (v *verifyStotageChallengeMsg) String() string {
+func (v *verifyStorageChallengeMsg) String() string {
 	return fmt.Sprintf("%#v", v)
 }
 
-func (v *verifyStotageChallengeMsg) Reset() {
+func (v *verifyStorageChallengeMsg) Reset() {
 	v.ChallengeMessage = nil
 	v.VerifierMasterNodesClientPIDs = nil
 }
 
-func (v *verifyStotageChallengeMsg) ProtoMessage() {}
+func (v *verifyStorageChallengeMsg) ProtoMessage() {}
 
-type processStotageChallengeMsg struct {
+type processStorageChallengeMsg struct {
 	ProcessingMasterNodesClientPID *actor.PID
 	*model.ChallengeMessage
 }
 
-func (v *processStotageChallengeMsg) String() string {
+func (v *processStorageChallengeMsg) String() string {
 	return fmt.Sprintf("%#v", v)
 }
 
-func (v *processStotageChallengeMsg) Reset() {
+func (v *processStorageChallengeMsg) Reset() {
 	v.ChallengeMessage = nil
 	v.ProcessingMasterNodesClientPID = nil
 }
 
-func (v *processStotageChallengeMsg) ProtoMessage() {}
+func (v *processStorageChallengeMsg) ProtoMessage() {}
 
 type domainActor struct {
 }
 
 func (d *domainActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case *verifyStotageChallengeMsg:
+	case *verifyStorageChallengeMsg:
 		d.OnSendVerifyStorageChallengeMessage(context, msg)
-	case *processStotageChallengeMsg:
+	case *processStorageChallengeMsg:
 		d.OnSendProcessStorageChallengeMessage(context, msg)
 	default:
-		log.With(actorLog.String("ACTOR", "DOMAIN ACTOR")).Debug(fmt.Sprintf("Action not hanled %#v", msg))
+		log.With(actorLog.String("ACTOR", "DOMAIN ACTOR")).Debug(fmt.Sprintf("Action not handled %#v", msg))
 	}
 }
 
-func (s *domainActor) OnSendVerifyStorageChallengeMessage(ctx actor.Context, msg *verifyStotageChallengeMsg) {
+func (s *domainActor) OnSendVerifyStorageChallengeMessage(ctx actor.Context, msg *verifyStorageChallengeMsg) {
 	for _, verifyingMasternodePID := range msg.VerifierMasterNodesClientPIDs {
 		log.Debug(verifyingMasternodePID.String())
 		ctx.Send(verifyingMasternodePID, &dto.VerifyStorageChallengeRequest{
@@ -82,7 +82,7 @@ func (s *domainActor) OnSendVerifyStorageChallengeMessage(ctx actor.Context, msg
 	}
 }
 
-func (s *domainActor) OnSendProcessStorageChallengeMessage(ctx actor.Context, msg *processStotageChallengeMsg) {
+func (s *domainActor) OnSendProcessStorageChallengeMessage(ctx actor.Context, msg *processStorageChallengeMsg) {
 	log.Debug(msg.ProcessingMasterNodesClientPID.String())
 	ctx.Send(msg.ProcessingMasterNodesClientPID, &dto.StorageChallengeRequest{
 		Data: &dto.StorageChallengeData{

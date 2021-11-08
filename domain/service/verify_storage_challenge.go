@@ -76,10 +76,10 @@ func (s *storageChallenge) VerifyStorageChallenge(ctx appcontext.Context, incomi
 
 func (s *storageChallenge) validateVerifyingStorageChallengeIncommingData(incomingChallengeMessage *model.ChallengeMessage) error {
 	if incomingChallengeMessage.ChallengeStatus != model.Status_RESPONDED {
-		return fmt.Errorf("incorrect status to verifying storage challenge")
+		return fmt.Errorf("incorrect status to verify storage challenge")
 	}
 	if incomingChallengeMessage.MessageType != model.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE {
-		return fmt.Errorf("incorrect message type to verifying storage challenge")
+		return fmt.Errorf("incorrect message type to verify storage challenge")
 	}
 	return nil
 }

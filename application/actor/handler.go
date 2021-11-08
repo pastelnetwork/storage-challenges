@@ -50,7 +50,7 @@ func (s *storageChallengeActor) Receive(actorCtx actor.Context) {
 			commit = true
 		}
 	default:
-		log.Printf("Action not hanled %#v", msg)
+		log.Printf("Action not handled %#v", msg)
 		// TODO: response with unhandled notice
 	}
 }

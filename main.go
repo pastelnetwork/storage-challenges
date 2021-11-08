@@ -85,8 +85,8 @@ func main() {
 	remoter := message.NewRemoter(
 		actor.NewActorSystem(),
 		*cfg.Remoter.
-			WithClientSecureCres(credentials.NewClientCreds(pastelClient, secInfo)).
-			WithServerSecureCres(credentials.NewServerCreds(pastelClient, secInfo)),
+			WithClientSecureCreds(credentials.NewClientCreds(pastelClient, secInfo)).
+			WithServerSecureCreds(credentials.NewServerCreds(pastelClient, secInfo)),
 	)
 	remoter.Start()
 	defer remoter.GracefulStop()
