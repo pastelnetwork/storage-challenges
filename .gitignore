@@ -2,5 +2,6 @@
 .idea
 test_nodes/storage-challenge*
 storage-challenges
+test_symbol_files
 
 vendor
