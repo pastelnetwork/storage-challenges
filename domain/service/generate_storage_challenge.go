@@ -41,7 +41,7 @@ func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, cha
 	}
 
 	comparisonStringForFileHashSelection := curBlockHash + challengingMasternodeID
-	sliceOfFileHashesToChallenge := getNClosestXORDistanceStringToAGiventComparisonString(challengesPerMasternodePerBlock, comparisonStringForFileHashSelection, _symbolFiles(symbolFiles))
+	sliceOfFileHashesToChallenge := getNClosestXORDistanceStringToAGivenComparisonString(challengesPerMasternodePerBlock, comparisonStringForFileHashSelection, _symbolFiles(symbolFiles))
 
 	for idx, symbolFileHash := range sliceOfFileHashesToChallenge {
 		challengeDataSize := mapSymbolFileByFileHash[symbolFileHash].FileLengthInBytes
@@ -55,7 +55,7 @@ func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, cha
 		}
 
 		comparisonStringForMasternodeSelection := curBlockHash + symbolFileHash + s.nodeID + helper.GetHashFromString(fmt.Sprint(idx))
-		respondingMasternodesID := getNClosestXORDistanceStringToAGiventComparisonString(1, comparisonStringForMasternodeSelection, _xorDistances(xorDistances))
+		respondingMasternodesID := getNClosestXORDistanceStringToAGivenComparisonString(1, comparisonStringForMasternodeSelection, _xorDistances(xorDistances))
 		challengeStatus := model.Status_PENDING
 		messageType := model.MessageType_STORAGE_CHALLENGE_ISSUANCE_MESSAGE
 		challengeSliceStartIndex, challengeSliceEndIndex := getStorageChallengeSliceIndices(uint64(challengeDataSize), symbolFileHash, curBlockHash, challengingMasternodeID)
@@ -142,7 +142,7 @@ func (s _xorDistances) GetListXORDistanceString() []string {
 	return ret
 }
 
-func getNClosestXORDistanceStringToAGiventComparisonString(n int, comparisonString string, sliceOfComputingXORDistance computingXORDistance) []string {
+func getNClosestXORDistanceStringToAGivenComparisonString(n int, comparisonString string, sliceOfComputingXORDistance computingXORDistance) []string {
 	sliceOfXORDistance := make([]uint64, len(sliceOfComputingXORDistance.GetListXORDistanceString()))
 	XORDistanceToComputingStringMap := make(map[uint64]string)
 	for idx, currentComputing := range sliceOfComputingXORDistance.GetListXORDistanceString() {
