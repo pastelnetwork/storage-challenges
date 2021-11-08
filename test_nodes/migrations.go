@@ -1,4 +1,4 @@
-package main
+package testnodes
 
 import (
 	"crypto/sha256"

@@ -61,7 +61,7 @@ func (s *domainActor) OnSendVerifyStorageChallengeMessage(ctx actor.Context, msg
 		ctx.Send(verifyingMasternodePID, &dto.VerifyStorageChallengeRequest{
 			Data: &dto.StorageChallengeData{
 				MessageId:                     msg.MessageID,
-				MessageType:                   dto.StorageChallengeDataMessageType(dto.StorageChallengeDataStatus_value[msg.MessageType]),
+				MessageType:                   dto.StorageChallengeDataMessageType(dto.StorageChallengeDataMessageType_value[msg.MessageType]),
 				ChallengeStatus:               dto.StorageChallengeDataStatus(dto.StorageChallengeDataStatus_value[msg.ChallengeStatus]),
 				TimestampChallengeSent:        msg.TimestampChallengeSent,
 				TimestampChallengeRespondedTo: msg.TimestampChallengeRespondedTo,
@@ -87,7 +87,7 @@ func (s *domainActor) OnSendProcessStorageChallengeMessage(ctx actor.Context, ms
 	ctx.Send(msg.ProcessingMasterNodesClientPID, &dto.StorageChallengeRequest{
 		Data: &dto.StorageChallengeData{
 			MessageId:                     msg.MessageID,
-			MessageType:                   dto.StorageChallengeDataMessageType(dto.StorageChallengeDataStatus_value[msg.MessageType]),
+			MessageType:                   dto.StorageChallengeDataMessageType(dto.StorageChallengeDataMessageType_value[msg.MessageType]),
 			ChallengeStatus:               dto.StorageChallengeDataStatus(dto.StorageChallengeDataStatus_value[msg.ChallengeStatus]),
 			TimestampChallengeSent:        msg.TimestampChallengeSent,
 			TimestampChallengeRespondedTo: 0,

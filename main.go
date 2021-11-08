@@ -46,7 +46,7 @@ func main() {
 	})
 
 	if migrate {
-		AutoMigrate(seed)
+		testnodes.AutoMigrate(seed)
 		return
 	}
 

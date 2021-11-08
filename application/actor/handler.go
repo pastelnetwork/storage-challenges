@@ -56,10 +56,11 @@ func (s *storageChallengeActor) Receive(actorCtx actor.Context) {
 }
 
 func (s *storageChallengeActor) GenerateStorageChallenges(ctx appcontext.Context, req *dto.GenerateStorageChallengeRequest) (resp *dto.GenerateStorageChallengeReply, err error) {
-	log.Printf("GenerateStorageChallenge handler")
+	log.Println("GenerateStorageChallenge handler")
 	// validate request body
 	es := validateGenerateStorageChallengeData(req)
 	if err := validationErrorStackWrap(es); err != nil {
+		log.Printf("[GenerateStorageChallenge][Validation Error] %s", es)
 		return &dto.GenerateStorageChallengeReply{}, err
 	}
 
@@ -69,10 +70,11 @@ func (s *storageChallengeActor) GenerateStorageChallenges(ctx appcontext.Context
 }
 
 func (s *storageChallengeActor) StorageChallenge(ctx appcontext.Context, req *dto.StorageChallengeRequest) (resp *dto.StorageChallengeReply, err error) {
-	log.Printf("StorageChallenge handler")
+	log.Println("StorageChallenge handler")
 	// validate request body
 	es := validateStorageChallengeData(req.GetData(), "Data")
 	if err := validationErrorStackWrap(es); err != nil {
+		log.Printf("[ProcessStorageChallenge][Validation Error] %s", es)
 		return &dto.StorageChallengeReply{Data: req.GetData()}, err
 	}
 
@@ -82,10 +84,11 @@ func (s *storageChallengeActor) StorageChallenge(ctx appcontext.Context, req *dt
 }
 
 func (s *storageChallengeActor) VerifyStorageChallenge(ctx appcontext.Context, req *dto.VerifyStorageChallengeRequest) (resp *dto.VerifyStorageChallengeReply, err error) {
-	log.Printf("VerifyStorageChallenge handler")
+	log.Println("VerifyStorageChallenge handler")
 	// validate request body
 	es := validateStorageChallengeData(req.GetData(), "Data")
 	if err := validationErrorStackWrap(es); err != nil {
+		log.Printf("[VerifyStorageChallenge][Validation Error] %s", es)
 		return &dto.VerifyStorageChallengeReply{Data: req.GetData()}, err
 	}
 	// calling domain service to process bussiness logics

@@ -2,7 +2,7 @@ version: 1.0
 
 remoter:
   host: localhost
-  port: 9000
+  port: 9001
 
 database:
   sqlite_db: test_nodes/storage-challenge.sqlite
@@ -10,4 +10,8 @@ database:
   max_open_conns: 10
   debug: true
 
-masternode_id: jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw
+# test node0
+# masternode_id: jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw
+# test node1
+masternode_id: jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM
+masternode_passphrase: example_passphrase

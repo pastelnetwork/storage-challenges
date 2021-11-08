@@ -84,7 +84,7 @@ func NewRemoter(system *actor.ActorSystem, cfg Config) *Remoter {
 	if cfg.serverSecureCreds != nil {
 		serverCreds = append(serverCreds, grpc.Creds(cfg.serverSecureCreds))
 	}
-	remoterConfig.WithDialOptions(clientCreds...).WithServerOptions(serverCreds...)
+	remoterConfig = remoterConfig.WithServerOptions(serverCreds...).WithDialOptions(clientCreds...)
 	return &Remoter{
 		remoter: remote.NewRemote(system, remoterConfig),
 		context: system.Root,
