@@ -234,48 +234,6 @@ func (_m *Client) GetRawTransactionVerbose1(ctx context.Context, txID string) (*
 	return r0, r1
 }
 
-// GetRegisterExDDFee provides a mock function with given fields: ctx, request
-func (_m *Client) GetRegisterExDDFee(ctx context.Context, request pastel.GetRegisterExDDFeeRequest) (int64, error) {
-	ret := _m.Called(ctx, request)
-
-	var r0 int64
-	if rf, ok := ret.Get(0).(func(context.Context, pastel.GetRegisterExDDFeeRequest) int64); ok {
-		r0 = rf(ctx, request)
-	} else {
-		r0 = ret.Get(0).(int64)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, pastel.GetRegisterExDDFeeRequest) error); ok {
-		r1 = rf(ctx, request)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetRegisterExternalStorageFee provides a mock function with given fields: ctx, request
-func (_m *Client) GetRegisterExternalStorageFee(ctx context.Context, request pastel.GetRegisterExternalStorageFeeRequest) (int64, error) {
-	ret := _m.Called(ctx, request)
-
-	var r0 int64
-	if rf, ok := ret.Get(0).(func(context.Context, pastel.GetRegisterExternalStorageFeeRequest) int64); ok {
-		r0 = rf(ctx, request)
-	} else {
-		r0 = ret.Get(0).(int64)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, pastel.GetRegisterExternalStorageFeeRequest) error); ok {
-		r1 = rf(ctx, request)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetRegisterNFTFee provides a mock function with given fields: ctx, request
 func (_m *Client) GetRegisterNFTFee(ctx context.Context, request pastel.GetRegisterNFTFeeRequest) (int64, error) {
 	ret := _m.Called(ctx, request)
@@ -539,48 +497,6 @@ func (_m *Client) RegisterActTicket(ctx context.Context, regTicketTxid string, a
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, int, int64, string, string) error); ok {
 		r1 = rf(ctx, regTicketTxid, artistHeight, fee, pastelID, passphrase)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// RegisterExDDTicket provides a mock function with given fields: ctx, request
-func (_m *Client) RegisterExDDTicket(ctx context.Context, request pastel.RegisterExDDRequest) (string, error) {
-	ret := _m.Called(ctx, request)
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(context.Context, pastel.RegisterExDDRequest) string); ok {
-		r0 = rf(ctx, request)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, pastel.RegisterExDDRequest) error); ok {
-		r1 = rf(ctx, request)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// RegisterExternalStorageTicket provides a mock function with given fields: ctx, request
-func (_m *Client) RegisterExternalStorageTicket(ctx context.Context, request pastel.RegisterExternalStorageRequest) (string, error) {
-	ret := _m.Called(ctx, request)
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(context.Context, pastel.RegisterExternalStorageRequest) string); ok {
-		r0 = rf(ctx, request)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, pastel.RegisterExternalStorageRequest) error); ok {
-		r1 = rf(ctx, request)
 	} else {
 		r1 = ret.Error(1)
 	}
