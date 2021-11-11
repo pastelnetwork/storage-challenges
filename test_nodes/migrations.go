@@ -1,14 +1,19 @@
 package testnodes
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
+	"log"
+	"math/rand"
+	"path/filepath"
+	"sync"
 	"time"
 
+	"github.com/pastelnetwork/storage-challenges/utils/file"
+	"github.com/pastelnetwork/storage-challenges/utils/helper"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 )
 
 type CommonModel struct {
@@ -44,7 +49,7 @@ type PastelBlock struct {
 type SymbolFile struct {
 	CommonModel
 	FileHash               string `gorm:"primaryKey;unique"`
-	FileLengthInBytes      uint
+	FileLengthInBytes      uint64
 	TotalChallengesForFile uint
 	OriginalFilePath       string
 }
@@ -148,94 +153,256 @@ func AutoMigrate(seeding bool) {
 	fmt.Println()
 }
 
-func dataSeeding(db *gorm.DB) (err error) {
-	dbTx := db.Begin()
-	defer func() {
-		if err != nil {
-			dbTx.Rollback()
-		} else {
-			dbTx.Commit()
-		}
-	}()
+type masternodes []Masternode
 
-	mns := []Masternode{
+func (ms masternodes) ListIDs() []string {
+	var ids = make([]string, len(ms))
+	for idx, m := range ms {
+		ids[idx] = m.NodeID
+	}
+	return ids
+}
+
+var (
+	// first 6 nodes
+	mns = []Masternode{
 		{
 			NodeID:              "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
-			MasternodeIPAddress: "localhost:9000",
+			MasternodeIPAddress: "node0:9000",
 		},
 		{
 			NodeID:              "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
-			MasternodeIPAddress: "localhost:9001",
+			MasternodeIPAddress: "node1:9001",
 		},
 		{
 			NodeID:              "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
-			MasternodeIPAddress: "localhost:9002",
+			MasternodeIPAddress: "node2:9002",
 		},
 		{
 			NodeID:              "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
-			MasternodeIPAddress: "localhost:9003",
+			MasternodeIPAddress: "node3:9003",
 		},
 	}
 
-	h := sha256.New()
-	fileContent := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"
-	h.Write([]byte(fileContent))
-	fileHash := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	fileLenght := len(fileContent)
+	// 4 dishonest nodes
+	dishonestMns = masternodes{
+		{
+			NodeID:              "jX7RRUiOCNmoggpO67DOAH5An9raJspnY2noBe3UaAlCMqOEo2QQukhI8w0jjiAA78xpwlFc8ucpcV77pjw9Jm",
+			MasternodeIPAddress: "node4:9004",
+		},
+		{
+			NodeID:              "jXoIquQRCdRrnjOClioRrSdG6pGyqG3audIQrVwIc6OgR3FFa90WemZ1xuylKjUBMj3gZpL69GT2fdJV99jB81",
+			MasternodeIPAddress: "node5:9005",
+		},
+		{
+			NodeID:              "jXAXIVujFd2urNsR3mF1YogDlSKaJVdNx2bXWEo3tZukaICMYKFMBoJUcLeWIHyA1NWXHU9rCp1I32OxY6bKcr",
+			MasternodeIPAddress: "node6:9006",
+		},
+		{
+			NodeID:              "jXqsiabBVA07RRwaLfhKu4sQ4SCKSgp7TIcUufwDVZvBTdAD2mihLfdG0H7ZhHQTK2LAbKBGMGwlDPInKWsBMy",
+			MasternodeIPAddress: "node7:9007",
+		},
+	}
 
-	err = dbTx.Model(&Masternode{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "node_id"}}, UpdateAll: true}).Create(mns).Error
+	newMasternodes = masternodes{
+		{
+			NodeID:              "jXyCj6J8UXeughB7olBCOBtRylx8fuEESzMcsIgdWGkMbx89J9bY1FaYtMbftCTev9206SI0jY5zIVyELvcoGh",
+			MasternodeIPAddress: "node8:9008",
+		},
+		{
+			NodeID:              "jXyFFTa8UAGvMRRpoZWa6L0s4dGVVIAyKEobPCeagrljgshH5eGQTX5nh0z3azAgLlVIoj6aznno6Vq0tiFkfQ",
+			MasternodeIPAddress: "node9:9009",
+		},
+		{
+			NodeID:              "jXN0gNcapBcqrMYj28s3QS42txVNEHLvizx48FqRQusivXDtRPqiwXRk3zJ2rHQj0CXa1arrp8eWLCO84n5RIL",
+			MasternodeIPAddress: "node10:9010",
+		},
+		{
+			NodeID:              "jXderFvKIhkQyaLV134WNDkV9B5lSRqthT6aU35prg8z3snszlW9bh2A5S78c7oiI9ROZKGb9TbFHzvyuF4X3V",
+			MasternodeIPAddress: "node11:9011",
+		},
+	}
+	mapApproximatePercentageOfDishonestMasternodeToResponsibleFilesToIgnore = make(map[string]int)
+)
+
+func init() {
+	log.Println("Approximate percentage of dishonest masternode to responsible files to ignore:")
+	for _, dishonestMasternode := range dishonestMns {
+		var ignorePercentage int
+		// to be get cleaning test, make sure ignore percentage not too low or too high (allowed lowest is 10% and highest is 90%)
+		for ignorePercentage < 10 {
+			ignorePercentage = rand.Intn(90)
+		}
+		mapApproximatePercentageOfDishonestMasternodeToResponsibleFilesToIgnore[dishonestMasternode.NodeID] = ignorePercentage
+		log.Printf("\t%s -- %d%%\n", dishonestMasternode.NodeID, ignorePercentage)
+	}
+}
+
+func dataSeeding(db *gorm.DB) (err error) {
+	var symbolFilesPath []string
+	var symbolFilesFolderPath = "sample_raptorq_symbol_files"
+	symbolFilesPath, err = filepath.Glob(symbolFilesFolderPath + "/*")
 	if err != nil {
+		log.Panicln("filepath.Glob", err)
 		return
 	}
+	log.Printf("found %d symbol files in path %s", len(symbolFilesPath), symbolFilesFolderPath)
 
-	xds := []XORDistance{
-		{
-			XORDistanceID:  "xor_distance_id_1",
-			SymbolFileHash: fileHash,
-
-			MasternodeID: "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
-			XORDistance:  1,
-		},
-		{
-			XORDistanceID:  "xor_distance_id_2",
-			SymbolFileHash: fileHash,
-
-			MasternodeID: "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
-			XORDistance:  2,
-		},
-		{
-			XORDistanceID:  "xor_distance_id_3",
-			SymbolFileHash: fileHash,
-
-			MasternodeID: "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
-			XORDistance:  3,
-		},
-		{
-			XORDistanceID:  "xor_distance_id_4",
-			SymbolFileHash: fileHash,
-
-			MasternodeID: "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
-			XORDistance:  4,
-		},
-	}
-
-	err = dbTx.Model(&XORDistance{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "xor_distance_id"}}, UpdateAll: true}).Create(xds).Error
+	allMns := append(mns, dishonestMns...)
+	tx := db.Begin()
+	err = tx.Model(&Masternode{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "node_id"}}, UpdateAll: true}).Create(allMns).Error
 	if err != nil {
+		log.Printf("Inserting %d masternodes failed, doing rollback...", len(mns))
+		tx.Rollback()
 		return
 	}
+	tx.Commit()
+	log.Printf("Inserted %d masternodes", len(allMns))
 
-	sfs := []SymbolFile{
-		{
-			FileHash:          fileHash,
-			FileLengthInBytes: uint(fileLenght),
-			OriginalFilePath:  "test_symbol_files/symbol_file",
-		},
+	log.Println("NUMBER OF MASTERNODES ", len(mns), "NUMBER OF DISHONEST MASTERNODE ", len(dishonestMns))
+
+	var wg sync.WaitGroup
+	var maxProcessingSymbolFilesPerConcurent = 100
+	for cnt := 0; cnt < len(symbolFilesPath); cnt += maxProcessingSymbolFilesPerConcurent {
+		wg.Add(1)
+		if cnt+maxProcessingSymbolFilesPerConcurent < len(symbolFilesPath) {
+			go insertSymbolFilesAndXORDistanceToMasternodes(symbolFilesPath[cnt:cnt+maxProcessingSymbolFilesPerConcurent], mns, dishonestMns, db, &wg)
+		} else {
+			go insertSymbolFilesAndXORDistanceToMasternodes(symbolFilesPath[cnt:len(symbolFilesPath)-1], mns, dishonestMns, db, &wg)
+		}
 	}
 
-	err = dbTx.Model(&SymbolFile{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "file_hash"}}, UpdateAll: true}).Create(sfs).Error
-	if err != nil {
-		return
-	}
+	wg.Wait()
 
 	return err
+}
+
+func insertSymbolFilesAndXORDistanceToMasternodes(symbolFilesPath []string, masternodes, dishonestMasternodes []Masternode, db *gorm.DB, wg *sync.WaitGroup) {
+	defer wg.Done()
+	var symbolFiles = make([]SymbolFile, 0)
+	var mapMasternodeToRelatedXORDistances = make(map[string][]XORDistance)
+	var totalXORDistancesInserts = 0
+	for _, masternode := range append(masternodes, dishonestMasternodes...) {
+		mapMasternodeToRelatedXORDistances[masternode.NodeID] = make([]XORDistance, 0)
+	}
+	for _, filePath := range symbolFilesPath {
+		fileHash, size, err := file.GetHashAndSizeFromFilePath(filePath)
+		if err != nil {
+			log.Printf("ignoring file '%s' because cannot generate file hash", filePath)
+			continue
+		}
+		symbolFiles = append(symbolFiles, SymbolFile{OriginalFilePath: filePath, FileHash: fileHash, FileLengthInBytes: size})
+		for _, masternode := range masternodes {
+			mapMasternodeToRelatedXORDistances[masternode.NodeID] = append(mapMasternodeToRelatedXORDistances[masternode.NodeID], XORDistance{
+				XORDistanceID:  helper.GetHashFromString(masternode.NodeID + fileHash),
+				MasternodeID:   masternode.NodeID,
+				SymbolFileHash: fileHash,
+				XORDistance:    helper.ComputeXorDistanceBetweenTwoStrings(fileHash, masternode.NodeID),
+			})
+		}
+		for _, dishonestMasternode := range dishonestMasternodes {
+			randomRate := rand.Intn(100)
+			if randomRate <= mapApproximatePercentageOfDishonestMasternodeToResponsibleFilesToIgnore[dishonestMasternode.NodeID] {
+				continue
+			}
+			// dishonest masternode containing around x% of total symbol files
+			mapMasternodeToRelatedXORDistances[dishonestMasternode.NodeID] = append(mapMasternodeToRelatedXORDistances[dishonestMasternode.NodeID], XORDistance{
+				XORDistanceID:  helper.GetHashFromString(dishonestMasternode.NodeID + fileHash),
+				MasternodeID:   dishonestMasternode.NodeID,
+				SymbolFileHash: fileHash,
+				XORDistance:    helper.ComputeXorDistanceBetweenTwoStrings(fileHash, dishonestMasternode.NodeID),
+			})
+		}
+	}
+	tx := db.Begin()
+	var backupDBLogger = db.Config.Logger
+	tx.Config.Logger = logger.Default.LogMode(logger.Error)
+	defer func() { tx.Config.Logger = backupDBLogger }()
+	err := tx.Model(&SymbolFile{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "file_hash"}}, UpdateAll: true}).Create(symbolFiles).Error
+	if err != nil {
+		log.Printf("Inserting %d symbol files failed, doing rollback...", len(symbolFiles))
+		tx.Rollback()
+		return
+	}
+	log.Printf("Inserting %d symbol files", len(symbolFiles))
+
+	for nodeID, xorDistances := range mapMasternodeToRelatedXORDistances {
+		err := tx.Model(&XORDistance{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "xor_distance_id"}}, UpdateAll: true}).Create(xorDistances).Error
+		if err != nil {
+			log.Printf("Inserting %d xor distances to masternode %s failed, doing rollback...", len(xorDistances), nodeID)
+			tx.Rollback()
+			return
+		}
+		log.Printf("Inserting %d xor distances of masternode %s", len(xorDistances), nodeID)
+		totalXORDistancesInserts += len(xorDistances)
+	}
+
+	log.Printf("Inserted %d symbol files with %d xor distances related to %d masternodes", len(symbolFiles), totalXORDistancesInserts, len(masternodes)+len(dishonestMasternodes))
+	tx.Commit()
+}
+
+func AddNIncrementalMasternodesAndKIncrementalSymbolFiles(n, k int, db *gorm.DB) (err error) {
+	var newSymbolFilesPaths []string
+	var newSymbolFilesFolderPath = "incremental_raptorq_symbol_files"
+
+	newSymbolFilesPaths, err = filepath.Glob(newSymbolFilesFolderPath + "/*")
+	if err != nil {
+		log.Panicln("filepath.Glob", err)
+		return
+	}
+	log.Printf("found %d symbol files in path %s", len(newSymbolFilesPaths), newSymbolFilesPaths)
+
+	var listExistingFilePaths []string
+	if err = db.Model(&SymbolFile{}).Distinct("original_file_path").Find(&listExistingFilePaths).Error; err != nil {
+		log.Printf("Cannot query list existing file hash from database: %v", err)
+		return err
+	}
+	log.Printf("Found %d existing original symbol file path from database", len(listExistingFilePaths))
+
+	var listExistingMasternode masternodes
+	if err = db.Model(&Masternode{}).Find(&listExistingMasternode).Error; err != nil {
+		log.Printf("Cannot query list existing masternode from database: %v", err)
+		return err
+	}
+	log.Printf("Found %d existing masternodes from database", len(listExistingMasternode))
+
+	incrementalSymbolFilePaths := helper.FindMissingElementsOfAinB(newSymbolFilesPaths, listExistingFilePaths)
+
+	var mapMasternodes = make(map[string]Masternode)
+	for _, masternode := range append(listExistingMasternode, newMasternodes...) {
+		mapMasternodes[masternode.NodeID] = masternode
+	}
+	incrementalMasternodeIDs := helper.FindMissingElementsOfAinB(newMasternodes.ListIDs(), listExistingMasternode.ListIDs())
+
+	incrementalMasternodeCount := min(len(incrementalMasternodeIDs), n)
+	incrementalSymbolFilePathCount := min(len(incrementalSymbolFilePaths), k)
+
+	var incrementalMasternodes = []Masternode{}
+	for _, incrementalMasternodeID := range incrementalMasternodeIDs[:incrementalMasternodeCount] {
+		incrementalMasternodes = append(incrementalMasternodes, mapMasternodes[incrementalMasternodeID])
+	}
+
+	var wg = sync.WaitGroup{}
+	wg.Add(2)
+	// inserts all file hash related with only incremental masternodes
+	go insertSymbolFilesAndXORDistanceToMasternodes(append(listExistingFilePaths, incrementalSymbolFilePaths[:incrementalSymbolFilePathCount]...), incrementalMasternodes, []Masternode{}, db, &wg)
+
+	onlyExistingHonestMasternodeIDs := helper.FindMissingElementsOfAinB(listExistingMasternode.ListIDs(), dishonestMns.ListIDs())
+	var onlyExistingHonestMasternodes = masternodes{}
+	for _, incrementalMasternodeID := range onlyExistingHonestMasternodeIDs {
+		onlyExistingHonestMasternodes = append(onlyExistingHonestMasternodes, mapMasternodes[incrementalMasternodeID])
+	}
+	// inserts all honest masternode and dishonest masternode with only incremental file paths
+	go insertSymbolFilesAndXORDistanceToMasternodes(incrementalSymbolFilePaths[:incrementalSymbolFilePathCount], onlyExistingHonestMasternodes, dishonestMns, db, &wg)
+
+	wg.Wait()
+
+	return err
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
