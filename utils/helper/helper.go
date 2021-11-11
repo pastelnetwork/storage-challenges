@@ -82,3 +82,27 @@ func GetMasternodeIds(number_of_masternode_ids_to_make int) []string {
 	slice_of_masternode_ids = FillSliceWithFunctionOutput(slice_of_masternode_ids, GenerateFakePastelMnID)
 	return slice_of_masternode_ids
 }
+
+func FindMissingElementsOfAinB(a, b []string) []string {
+	type void struct{}
+	ma := make(map[string]void, len(a))
+	diffs := []string{}
+	for _, ka := range a {
+		ma[ka] = void{}
+	}
+	for _, kb := range b {
+		if _, ok := ma[kb]; !ok {
+			diffs = append(diffs, kb)
+		}
+	}
+	return diffs
+}
+
+func SliceContainsString(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+	return false
+}

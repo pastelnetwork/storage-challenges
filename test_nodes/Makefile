@@ -1,26 +1,16 @@
 build:
 	go build -o storage-challenges ../
 	go build -o cmd/start-test ./cmd
+	unzip -d sample_raptorq_symbol_files 'sample_raptorq_symbol_files_zip/*.zip'
+	unzip -d incremental_raptorq_symbol_files 'incremental_raptorq_symbol_files_zip/*.zip'
+	docker build -t sc .
 
 migrate:
 	STORAGE_CHALLENGE_CONFIG=node0 ./storage-challenges --migrate-seed
 
-start-node0:
-	# node0
-	STORAGE_CHALLENGE_CONFIG=node0 ./storage-challenges --test
-  
-start-node1:
-	# node1
-	STORAGE_CHALLENGE_CONFIG=node1 ./storage-challenges --test
-
-start-node2:
-	# node2
-	STORAGE_CHALLENGE_CONFIG=node2 ./storage-challenges --test
-
-start-node3:
-	# node3
-	STORAGE_CHALLENGE_CONFIG=node3 ./storage-challenges --test
+start-nodes:
+	docker-compose up
 
 start-test:
 	# start test
-	STORAGE_CHALLENGE_CONFIG=cmd ./cmd/start-test
+	STORAGE_CHALLENGE_CONFIG=cmd .cmd/start-test

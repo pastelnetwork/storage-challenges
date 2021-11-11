@@ -1,0 +1,13 @@
+version: 1.0
+
+remoter:
+  host: 0.0.0.0
+  port: 9000
+
+database:
+  sqlite_db: storage-challenge.sqlite
+  max_idle_conns: 3
+  max_open_conns: 10
+  debug: true
+
+masternode_id: jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr

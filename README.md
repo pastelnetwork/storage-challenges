@@ -46,30 +46,8 @@ make build
 make migrate
 ```
 
-- start test node0:
+- start 12 test nodes:
 
 ```
-make start-node0
-```
-- start test node1 in new terminal
-
-```
-make start-node1
-```
-- start test node2 in new terminal
-
-```
-make start-node2
-```
-
-- start test node3 in new terminal
-
-```
-make start-node3
-```
-
-- start test process (call to node0 generate storage challenges)
-
-```
-make start-test
+make start-nodes
 ```

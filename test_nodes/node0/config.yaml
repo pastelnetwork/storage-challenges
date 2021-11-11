@@ -1,7 +1,7 @@
 version: 1
 
 remoter:
-  host: localhost
+  host: 0.0.0.0
   port: 9000
 
 database:

@@ -54,7 +54,6 @@ func NewStore(c Config) (Store, error) {
 
 	if c.Debug {
 		db.Config.Logger = logger.Default.LogMode(logger.Info)
-		db.Debug()
 	}
 	s = &store{db}
 
