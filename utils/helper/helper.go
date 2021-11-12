@@ -4,10 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"time"
 
-	"github.com/pastelnetwork/storage-challenges/utils/xordistance"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -39,19 +37,6 @@ func GenerateFakeBlockHashes(numberOfBlockToMake int) []string {
 
 func ComputeElapsedTimeInSecondsBetweenTwoDatetimes(start, end int64) float64 {
 	return float64(end - start)
-}
-
-func ComputeXorDistanceBetweenTwoStrings(string1 string, string2 string) uint64 {
-	string1Hash := GetHashFromString(string1)
-	string2Hash := GetHashFromString(string2)
-	string1HashAsBytes := []byte(string1Hash)
-	string2HashAsBytes := []byte(string2Hash)
-	xorDistance, _ := xordistance.XORBytes(string1HashAsBytes, string2HashAsBytes)
-	xorDistanceAsInt := xordistance.BytesToInt(xorDistance)
-	xorDistanceAsString := fmt.Sprint(xorDistanceAsInt)
-	xorDistanceAsStringRescaled := fmt.Sprint(xorDistanceAsString[:len(xorDistanceAsString)-137])
-	xorDistanceAsUint64, _ := strconv.ParseUint(xorDistanceAsStringRescaled, 10, 64)
-	return xorDistanceAsUint64
 }
 
 func GenerateFakePastelMnID() string {

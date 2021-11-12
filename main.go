@@ -71,7 +71,7 @@ func main() {
 	var pastelClient pastel.Client
 	if test {
 		log.Println("USING TEST PASTEL CLIENT")
-		pastelClient = testnodes.NewMockPastelClient()
+		pastelClient = testnodes.NewMockPastelClient(store.GetDB())
 	} else {
 		pastelClient = pastel.NewClient(cfg.PastelClient)
 	}

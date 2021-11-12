@@ -13,4 +13,5 @@ start-nodes:
 
 start-test:
 	# start test
-	STORAGE_CHALLENGE_CONFIG=cmd .cmd/start-test
+	echo NOTE: update hosts file to point node0->node14 to 127.0.0.1 before start test, but for longterm in future start-test will also running in docker container
+	STORAGE_CHALLENGE_CONFIG=cmd ./cmd/start-test

@@ -9,6 +9,14 @@ import (
 func validateGenerateStorageChallengeData(req *dto.GenerateStorageChallengeRequest) validationErrorStack {
 	var key string
 	var es validationErrorStack = make([]*validationError, 0)
+
+	if req.GetCurrentBlockHash() == "" {
+		es = append(es, &validationError{
+			keys:   []string{joinKeyPart(key, "CurrentBlockHash")},
+			reason: reasonInvalidEmptyValue,
+		})
+	}
+
 	if req.GetChallengingMasternodeId() == "" {
 		es = append(es, &validationError{
 			keys:   []string{joinKeyPart(key, "ChallengingMasternodeId")},

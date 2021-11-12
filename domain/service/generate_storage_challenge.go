@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"time"
 
@@ -13,22 +12,10 @@ import (
 	"github.com/pastelnetwork/storage-challenges/domain/model"
 	appcontext "github.com/pastelnetwork/storage-challenges/utils/context"
 	"github.com/pastelnetwork/storage-challenges/utils/helper"
+	"github.com/pastelnetwork/storage-challenges/utils/xordistance"
 )
 
-func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, challengingMasternodeID string, challengesPerMasternodePerBlock int) error {
-	log.With(actorLog.String("ACTOR", "GenerateStorageChallenges")).Debug("Start generating storage challenge")
-	curBlockIndex, err := s.pclient.GetBlockCount(ctx)
-	if err != nil {
-		log.With(actorLog.String("ACTOR", "GenerateStorageChallenges")).Error("could not get block count", actorLog.String("s.pclient.GetBlockCount", err.Error()))
-		return err
-	}
-
-	curBlockHash, err := s.pclient.GetBlockHash(ctx, curBlockIndex)
-	if err != nil {
-		log.With(actorLog.String("ACTOR", "GenerateStorageChallenges")).Error("could not get block hash", actorLog.String("s.pclient.getBlockHash", err.Error()))
-		return err
-	}
-
+func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, currentBlockHash string, challengingMasternodeID string, challengesPerMasternodePerBlock int) error {
 	symbolFiles, err := s.repository.GetSymbolFiles(ctx)
 	if err != nil {
 		log.With(actorLog.String("ACTOR", "GenerateStorageChallenges")).Error("could not get symbol files", actorLog.String("s.repository.GetSymbolFiles", err.Error()))
@@ -40,8 +27,8 @@ func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, cha
 		mapSymbolFileByFileHash[symbolFile.FileHash] = symbolFile
 	}
 
-	comparisonStringForFileHashSelection := curBlockHash + challengingMasternodeID
-	sliceOfFileHashesToChallenge := getNClosestXORDistanceStringToAGivenComparisonString(challengesPerMasternodePerBlock, comparisonStringForFileHashSelection, _symbolFiles(symbolFiles))
+	comparisonStringForFileHashSelection := currentBlockHash + challengingMasternodeID
+	sliceOfFileHashesToChallenge := xordistance.GetNClosestXORDistanceStringToAGivenComparisonString(challengesPerMasternodePerBlock, comparisonStringForFileHashSelection, _symbolFiles(symbolFiles).GetListXORDistanceString())
 
 	for idx, symbolFileHash := range sliceOfFileHashesToChallenge {
 		challengeDataSize := mapSymbolFileByFileHash[symbolFileHash].FileLengthInBytes
@@ -54,12 +41,12 @@ func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, cha
 			continue
 		}
 
-		comparisonStringForMasternodeSelection := curBlockHash + symbolFileHash + s.nodeID + helper.GetHashFromString(fmt.Sprint(idx))
-		respondingMasternodesID := getNClosestXORDistanceStringToAGivenComparisonString(1, comparisonStringForMasternodeSelection, _xorDistances(xorDistances))
+		comparisonStringForMasternodeSelection := currentBlockHash + symbolFileHash + s.nodeID + helper.GetHashFromString(fmt.Sprint(idx))
+		respondingMasternodesID := xordistance.GetNClosestXORDistanceStringToAGivenComparisonString(1, comparisonStringForMasternodeSelection, _xorDistances(xorDistances).GetListXORDistanceString())
 		challengeStatus := model.Status_PENDING
 		messageType := model.MessageType_STORAGE_CHALLENGE_ISSUANCE_MESSAGE
-		challengeSliceStartIndex, challengeSliceEndIndex := getStorageChallengeSliceIndices(uint64(challengeDataSize), symbolFileHash, curBlockHash, challengingMasternodeID)
-		messageIDInputData := challengingMasternodeID + respondingMasternodesID[0] + symbolFileHash + challengeStatus + messageType + curBlockHash
+		challengeSliceStartIndex, challengeSliceEndIndex := getStorageChallengeSliceIndices(uint64(challengeDataSize), symbolFileHash, currentBlockHash, challengingMasternodeID)
+		messageIDInputData := challengingMasternodeID + respondingMasternodesID[0] + symbolFileHash + challengeStatus + messageType + currentBlockHash
 		messageID := helper.GetHashFromString(messageIDInputData)
 		timestampChallengeSent := time.Now().Unix()
 		challengeIDInputData := challengingMasternodeID + respondingMasternodesID[0] + symbolFileHash + fmt.Sprint(challengeSliceStartIndex) + fmt.Sprint(challengeSliceEndIndex) + fmt.Sprint(timestampChallengeSent)
@@ -71,7 +58,7 @@ func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, cha
 			TimestampChallengeSent:        time.Now().Unix(),
 			TimestampChallengeRespondedTo: 0,
 			TimestampChallengeVerified:    0,
-			BlockHashWhenChallengeSent:    curBlockHash,
+			BlockHashWhenChallengeSent:    currentBlockHash,
 			ChallengingMasternodeID:       challengingMasternodeID,
 			RespondingMasternodeID:        respondingMasternodesID[0],
 			FileHashToChallenge:           symbolFileHash,
@@ -116,10 +103,6 @@ func (s *storageChallenge) sendprocessStorageChallenge(ctx appcontext.Context, c
 	return s.remoter.Send(ctx, s.domainActorID, &processStorageChallengeMsg{ProcessingMasterNodesClientPID: processingMasterNodesClientPID, ChallengeMessage: challengeMessage})
 }
 
-type computingXORDistance interface {
-	GetListXORDistanceString() []string
-}
-
 type _symbolFiles []*model.SymbolFile
 
 func (s _symbolFiles) GetListXORDistanceString() []string {
@@ -142,24 +125,6 @@ func (s _xorDistances) GetListXORDistanceString() []string {
 	return ret
 }
 
-func getNClosestXORDistanceStringToAGivenComparisonString(n int, comparisonString string, sliceOfComputingXORDistance computingXORDistance) []string {
-	sliceOfXORDistance := make([]uint64, len(sliceOfComputingXORDistance.GetListXORDistanceString()))
-	XORDistanceToComputingStringMap := make(map[uint64]string)
-	for idx, currentComputing := range sliceOfComputingXORDistance.GetListXORDistanceString() {
-		currentXORDistance := helper.ComputeXorDistanceBetweenTwoStrings(currentComputing, comparisonString)
-		sliceOfXORDistance[idx] = currentXORDistance
-		XORDistanceToComputingStringMap[currentXORDistance] = currentComputing
-	}
-	sort.Slice(sliceOfXORDistance, func(i, j int) bool { return sliceOfXORDistance[i] < sliceOfXORDistance[j] })
-	sliceOfTopNClosestString := make([]string, n)
-	for ii, currentXORDistance := range sliceOfXORDistance {
-		if ii < n {
-			sliceOfTopNClosestString[ii] = XORDistanceToComputingStringMap[currentXORDistance]
-		}
-	}
-	return sliceOfTopNClosestString
-}
-
 func getStorageChallengeSliceIndices(totalDataLengthInBytes uint64, fileHashString string, blockHashString string, challengingMasternodeId string) (int, int) {
 	blockHashStringAsInt, _ := strconv.ParseInt(blockHashString, 16, 64)
 	blockHashStringAsIntStr := fmt.Sprint(blockHashStringAsInt)
@@ -172,7 +137,7 @@ func getStorageChallengeSliceIndices(totalDataLengthInBytes uint64, fileHashStri
 	totalDataLengthInBytesAsInt := int(totalDataLengthInBytes)
 	for j := 0; j <= totalDataLengthInBytesAsInt; j += stepSizeForIndicesAsInt {
 		jAsString := fmt.Sprintf("%d", j)
-		currentXorDistance := helper.ComputeXorDistanceBetweenTwoStrings(jAsString, comparisonString)
+		currentXorDistance := xordistance.ComputeXorDistanceBetweenTwoStrings(jAsString, comparisonString)
 		sliceOfXorDistancesOfIndicesToBlockHash = append(sliceOfXorDistancesOfIndicesToBlockHash, currentXorDistance)
 		sliceOfIndicesWithStepSize = append(sliceOfIndicesWithStepSize, j)
 	}

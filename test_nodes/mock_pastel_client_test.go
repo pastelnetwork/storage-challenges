@@ -17,7 +17,7 @@ func TestNewMockPastelClient(t *testing.T) {
 	}{
 		{
 			"success",
-			NewMockPastelClient(),
+			NewMockPastelClient(nil),
 			[]byte("mock signature"),
 			false,
 		},

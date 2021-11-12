@@ -61,6 +61,7 @@ message VerifyStorageChallengeReply {
 message GenerateStorageChallengeRequest {
     string challenging_masternode_id = 1;
     int32 challenges_per_masternode_per_block = 2;
+    string current_block_hash = 3;
 }
 
 message GenerateStorageChallengeReply {}

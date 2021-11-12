@@ -50,15 +50,14 @@ type Challenge struct {
 }
 
 type PastelBlock struct {
-	BlockHash                        string
-	BlockNumber                      uint
-	TotalChallengesIssued            uint
-	TotalChallengesRespondedTo       uint
-	TotalChallengesCorrect           uint
-	TotalChallengesIncorrect         uint
-	TotalChallengesCorrectButTooSlow uint
-	TotalChallengesNeverRespondedTo  uint
-	ChallengeResponseSuccessRatePct  float32 `gorm:"column:challenge_response_success_rate_pct"`
+	BlockHash                       string
+	BlockNumber                     uint
+	TotalChallengesIssued           uint
+	TotalChallengesRespondedTo      uint
+	TotalChallengesCorrect          uint
+	TotalChallengesIncorrect        uint
+	TotalChallengeTimeout           uint
+	ChallengeResponseSuccessRatePct float32 `gorm:"column:challenge_response_success_rate_pct"`
 }
 
 type Masternode struct {
