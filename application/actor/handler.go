@@ -65,7 +65,7 @@ func (s *storageChallengeActor) GenerateStorageChallenges(ctx appcontext.Context
 	}
 
 	// calling domain service to process bussiness logics
-	err = s.service.GenerateStorageChallenges(ctx, req.GetChallengingMasternodeId(), int(req.GetChallengesPerMasternodePerBlock()))
+	err = s.service.GenerateStorageChallenges(ctx, req.GetCurrentBlockHash(), req.GetChallengingMasternodeId(), int(req.GetChallengesPerMasternodePerBlock()))
 	return &dto.GenerateStorageChallengeReply{}, err
 }
 

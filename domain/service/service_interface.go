@@ -6,7 +6,7 @@ import (
 )
 
 type StorageChallenge interface {
-	GenerateStorageChallenges(ctx appcontext.Context, challengingMasternodeID string, challengesPerNodePerBlock int) error
+	GenerateStorageChallenges(ctx appcontext.Context, blockHash, challengingMasternodeID string, challengesPerNodePerBlock int) error
 	ProcessStorageChallenge(ctx appcontext.Context, incomingChallengeMessage *model.ChallengeMessage) error
 	VerifyStorageChallenge(ctx appcontext.Context, incomingChallengeMessage *model.ChallengeMessage) error
 }

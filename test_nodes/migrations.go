@@ -10,6 +10,7 @@ import (
 
 	"github.com/pastelnetwork/storage-challenges/utils/file"
 	"github.com/pastelnetwork/storage-challenges/utils/helper"
+	"github.com/pastelnetwork/storage-challenges/utils/xordistance"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -23,15 +24,14 @@ type CommonModel struct {
 
 type Masternode struct {
 	CommonModel
-	NodeID                           string `gorm:"primaryKey;unique"`
-	MasternodeIPAddress              string `gorm:"column:masternode_ip_address"`
-	TotalChallengesIssued            uint
-	TotalChallengesRespondedTo       uint
-	TotalChallengesCorrect           uint
-	TotalChallengesIncorrect         uint
-	TotalChallengesCorrectButTooSlow uint
-	TotalChallengesNeverRespondedTo  uint
-	ChallengeResponseSuccessRatePct  float32
+	NodeID                          string `gorm:"primaryKey;unique"`
+	MasternodeIPAddress             string `gorm:"column:masternode_ip_address"`
+	TotalChallengesIssued           uint
+	TotalChallengesRespondedTo      uint
+	TotalChallengesCorrect          uint
+	TotalChallengesIncorrect        uint
+	TotalChallengesTimeout          uint
+	ChallengeResponseSuccessRatePct float32
 }
 
 type PastelBlock struct {
@@ -42,7 +42,7 @@ type PastelBlock struct {
 	TotalChallengesRespondedTo      uint
 	TotalChallengesCorrect          uint
 	TotalChallengesIncorrect        uint
-	TotalChallengeTimeout           uint
+	TotalChallengesTimeout          uint
 	ChallengeResponseSuccessRatePct float32
 }
 
@@ -163,8 +163,12 @@ func (ms masternodes) ListIDs() []string {
 	return ids
 }
 
+func GetListMasternodeIDsFromMasternodes(mns []Masternode) []string {
+	return masternodes(mns).ListIDs()
+}
+
 var (
-	// first 6 nodes
+	// first 2 nodes
 	mns = []Masternode{
 		{
 			NodeID:              "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
@@ -174,37 +178,37 @@ var (
 			NodeID:              "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
 			MasternodeIPAddress: "node1:9001",
 		},
-		{
-			NodeID:              "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
-			MasternodeIPAddress: "node2:9002",
-		},
-		{
-			NodeID:              "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
-			MasternodeIPAddress: "node3:9003",
-		},
 	}
 
 	// 4 dishonest nodes
 	dishonestMns = masternodes{
 		{
 			NodeID:              "jX7RRUiOCNmoggpO67DOAH5An9raJspnY2noBe3UaAlCMqOEo2QQukhI8w0jjiAA78xpwlFc8ucpcV77pjw9Jm",
-			MasternodeIPAddress: "node4:9004",
+			MasternodeIPAddress: "node2:9002",
 		},
 		{
 			NodeID:              "jXoIquQRCdRrnjOClioRrSdG6pGyqG3audIQrVwIc6OgR3FFa90WemZ1xuylKjUBMj3gZpL69GT2fdJV99jB81",
-			MasternodeIPAddress: "node5:9005",
+			MasternodeIPAddress: "node3:9003",
 		},
 		{
 			NodeID:              "jXAXIVujFd2urNsR3mF1YogDlSKaJVdNx2bXWEo3tZukaICMYKFMBoJUcLeWIHyA1NWXHU9rCp1I32OxY6bKcr",
-			MasternodeIPAddress: "node6:9006",
+			MasternodeIPAddress: "node4:9004",
 		},
 		{
 			NodeID:              "jXqsiabBVA07RRwaLfhKu4sQ4SCKSgp7TIcUufwDVZvBTdAD2mihLfdG0H7ZhHQTK2LAbKBGMGwlDPInKWsBMy",
-			MasternodeIPAddress: "node7:9007",
+			MasternodeIPAddress: "node5:9005",
 		},
 	}
 
 	newMasternodes = masternodes{
+		{
+			NodeID:              "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
+			MasternodeIPAddress: "node6:9006",
+		},
+		{
+			NodeID:              "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
+			MasternodeIPAddress: "node7:9007",
+		},
 		{
 			NodeID:              "jXyCj6J8UXeughB7olBCOBtRylx8fuEESzMcsIgdWGkMbx89J9bY1FaYtMbftCTev9206SI0jY5zIVyELvcoGh",
 			MasternodeIPAddress: "node8:9008",
@@ -220,6 +224,22 @@ var (
 		{
 			NodeID:              "jXderFvKIhkQyaLV134WNDkV9B5lSRqthT6aU35prg8z3snszlW9bh2A5S78c7oiI9ROZKGb9TbFHzvyuF4X3V",
 			MasternodeIPAddress: "node11:9011",
+		},
+		{
+			NodeID:              "jXderFvKIhkQyaLV134WNDkV9B5lSRqthT6aU35prg8z3snszlW9bh2A5S78c7oiI9ROZKGb9TbFHzvyuF4X3V",
+			MasternodeIPAddress: "node12:9012",
+		},
+		{
+			NodeID:              "jXderFvKIhkQyaLV134WNDkV9B5lSRqthT6aU35prg8z3snszlW9bh2A5S78c7oiI9ROZKGb9TbFHzvyuF4X3V",
+			MasternodeIPAddress: "node13:9013",
+		},
+		{
+			NodeID:              "jXderFvKIhkQyaLV134WNDkV9B5lSRqthT6aU35prg8z3snszlW9bh2A5S78c7oiI9ROZKGb9TbFHzvyuF4X3V",
+			MasternodeIPAddress: "node14:9014",
+		},
+		{
+			NodeID:              "jXderFvKIhkQyaLV134WNDkV9B5lSRqthT6aU35prg8z3snszlW9bh2A5S78c7oiI9ROZKGb9TbFHzvyuF4X3V",
+			MasternodeIPAddress: "node15:9015",
 		},
 	}
 	mapApproximatePercentageOfDishonestMasternodeToResponsibleFilesToIgnore = make(map[string]int)
@@ -297,7 +317,7 @@ func insertSymbolFilesAndXORDistanceToMasternodes(symbolFilesPath []string, mast
 				XORDistanceID:  helper.GetHashFromString(masternode.NodeID + fileHash),
 				MasternodeID:   masternode.NodeID,
 				SymbolFileHash: fileHash,
-				XORDistance:    helper.ComputeXorDistanceBetweenTwoStrings(fileHash, masternode.NodeID),
+				XORDistance:    xordistance.ComputeXorDistanceBetweenTwoStrings(fileHash, masternode.NodeID),
 			})
 		}
 		for _, dishonestMasternode := range dishonestMasternodes {
@@ -310,7 +330,7 @@ func insertSymbolFilesAndXORDistanceToMasternodes(symbolFilesPath []string, mast
 				XORDistanceID:  helper.GetHashFromString(dishonestMasternode.NodeID + fileHash),
 				MasternodeID:   dishonestMasternode.NodeID,
 				SymbolFileHash: fileHash,
-				XORDistance:    helper.ComputeXorDistanceBetweenTwoStrings(fileHash, dishonestMasternode.NodeID),
+				XORDistance:    xordistance.ComputeXorDistanceBetweenTwoStrings(fileHash, dishonestMasternode.NodeID),
 			})
 		}
 	}
@@ -350,7 +370,7 @@ func AddNIncrementalMasternodesAndKIncrementalSymbolFiles(n, k int, db *gorm.DB)
 		log.Panicln("filepath.Glob", err)
 		return
 	}
-	log.Printf("found %d symbol files in path %s", len(newSymbolFilesPaths), newSymbolFilesPaths)
+	log.Printf("found %d symbol files in path %s", len(newSymbolFilesPaths), newSymbolFilesFolderPath)
 
 	var listExistingFilePaths []string
 	if err = db.Model(&SymbolFile{}).Distinct("original_file_path").Find(&listExistingFilePaths).Error; err != nil {
@@ -405,4 +425,38 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func AddPastelBlock(blockIdx int32, db *gorm.DB) (err error) {
+	tx := db.Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+
+	var pastelBlock = PastelBlock{
+		BlockHash:   helper.GetHashFromString("mock block hash " + fmt.Sprint(blockIdx)),
+		BlockNumber: uint(blockIdx),
+	}
+
+	return tx.Model(&PastelBlock{}).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "block_hash"}}, DoNothing: true}).Create(&pastelBlock).Error
+}
+
+func GetLastBlockNumer(db *gorm.DB) int32 {
+	var blocknum int32
+	db.Model(&PastelBlock{}).Select("block_number").Order("block_number DESC").Limit(1).Find(&blocknum)
+	return blocknum
+}
+
+func GetPastelBlockHash(blockIdx int32) string {
+	return helper.GetHashFromString("mock block hash " + fmt.Sprint(blockIdx))
+}
+
+func GetMasternodes(db *gorm.DB) []Masternode {
+	var masternodes = []Masternode{}
+	db.Model(&Masternode{}).Find(&masternodes)
+	return masternodes
 }

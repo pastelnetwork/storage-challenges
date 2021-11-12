@@ -1,15 +1,16 @@
 package testnodes
 
 import (
-	"encoding/hex"
+	"context"
 	"log"
 
 	"github.com/pastelnetwork/gonode/pastel"
 	"github.com/pastelnetwork/storage-challenges/test_nodes/mocks"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
-func NewMockPastelClient() pastel.Client {
+func NewMockPastelClient(db *gorm.DB) pastel.Client {
 	mc := &mocks.Client{}
 	mc.On("Sign", mock.Anything, mock.MatchedBy(func(data []byte) bool {
 		log.Println("MOCK PASTEL CLIENT -- Sign data param:", string(data))
@@ -41,28 +42,25 @@ func NewMockPastelClient() pastel.Client {
 
 	mc.On("GetBlockCount", mock.Anything).Run(func(args mock.Arguments) {
 		log.Println("MOCK PASTEL CLIENT -- GetBlockHash")
-	}).Return(int32(1), nil)
+	}).Return(func(ctx context.Context) int32 { return GetLastBlockNumer(db) }, func(ctx context.Context) error { return nil })
 
 	mc.On("GetBlockHash", mock.Anything, mock.MatchedBy(func(blockHeight int32) bool {
 		log.Println("MOCK PASTEL CLIENT -- GetBlockHash blockHeight param:", blockHeight)
 		return true
-	})).Return(hex.EncodeToString([]byte("mock block hash")), nil)
+	})).Return(func(ctx context.Context, blockHeight int32) string { return GetPastelBlockHash(blockHeight) }, func(ctx context.Context, blockHeight int32) error { return nil })
 
 	mc.On("MasterNodesExtra", mock.Anything).Run(func(args mock.Arguments) {
 		log.Println("MOCK PASTEL CLIENT -- MasterNodesExtra")
-	}).Return(pastel.MasterNodes{pastel.MasterNode{
-		ExtAddress: "localhost:9000",
-		ExtKey:     "jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw",
-	}, {
-		ExtAddress: "localhost:9001",
-		ExtKey:     "jXEZVtIEVmSkYw0v8qGjsBrrELBOPuedNYMctelLWSlw6tiVNljFMpZFir30SN9r645tEAKwEAYfKR3o4Ek5YM",
-	}, {
-		ExtAddress: "localhost:9002",
-		ExtKey:     "jXqBzHsk8P1cuRFrsRkQR5IhPzwFyCxE369KYqFLSITr8l5koLWcabZZDUVltIJ8666bE53G5fbtCz4veU2FCP",
-	}, {
-		ExtAddress: "localhost:9003",
-		ExtKey:     "jXTwS1eCNDopMUIZAQnvpGlVe9lEnbauoh8TNDRoZcRTJVxCmZu1oSySBM1UwwyHDh7npbn01tZG0q2xyGmVJr",
-	}}, nil)
+	}).Return(func(ctx context.Context) pastel.MasterNodes {
+		var ret = pastel.MasterNodes{}
+		for _, mn := range GetMasternodes(db) {
+			ret = append(ret, pastel.MasterNode{
+				ExtAddress: mn.MasternodeIPAddress,
+				ExtKey:     mn.NodeID,
+			})
+		}
+		return ret
+	}, func(ctx context.Context) error { return nil })
 
 	return mc
 }
