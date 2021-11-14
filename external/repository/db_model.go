@@ -4,11 +4,13 @@ import (
 	"time"
 
 	"github.com/pastelnetwork/storage-challenges/domain/model"
+	"gorm.io/gorm"
 )
 
 type CommonModel struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 type ChallengeMessage struct {

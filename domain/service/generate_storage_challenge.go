@@ -51,7 +51,7 @@ func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, cur
 		timestampChallengeSent := time.Now().Unix()
 		challengeIDInputData := challengingMasternodeID + respondingMasternodesID[0] + symbolFileHash + fmt.Sprint(challengeSliceStartIndex) + fmt.Sprint(challengeSliceEndIndex) + fmt.Sprint(timestampChallengeSent)
 		challengeID := helper.GetHashFromString(challengeIDInputData)
-		outgoinChallengMessage := &model.ChallengeMessage{
+		outgoinChallengeMessage := &model.ChallengeMessage{
 			MessageID:                     messageID,
 			MessageType:                   messageType,
 			ChallengeStatus:               challengeStatus,
@@ -68,12 +68,14 @@ func (s *storageChallenge) GenerateStorageChallenges(ctx appcontext.Context, cur
 			ChallengeResponseHash:         "",
 			ChallengeID:                   challengeID,
 		}
-		err = s.repository.UpsertStorageChallengeMessage(ctx, outgoinChallengMessage)
+		err = s.repository.UpsertStorageChallengeMessage(ctx, outgoinChallengeMessage)
 		if err != nil {
-			log.With(actorLog.String("ACTOR", "GenerateStorageChallenges")).Warn(fmt.Sprintf("could not update storage challenge into storage: %v", outgoinChallengMessage), actorLog.String("s.repository.UpsertStorageChallengeMessage", err.Error()))
+			log.With(actorLog.String("ACTOR", "GenerateStorageChallenges")).Warn(fmt.Sprintf("could not update storage challenge into storage: %v", outgoinChallengeMessage), actorLog.String("s.repository.UpsertStorageChallengeMessage", err.Error()))
 			continue
 		}
-		s.sendprocessStorageChallenge(ctx, outgoinChallengMessage)
+		s.saveChallengeAnalysis(ctx, outgoinChallengeMessage.BlockHashWhenChallengeSent, outgoinChallengeMessage.ChallengingMasternodeID, model.ANALYSYS_STATUS_ISSUED)
+
+		s.sendprocessStorageChallenge(ctx, outgoinChallengeMessage)
 	}
 
 	return nil

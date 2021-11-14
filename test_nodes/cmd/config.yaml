@@ -1,11 +1,12 @@
 version: 1.0
 
 remoter:
-  host: localhost
-  port: 9099
+  host: 0.0.0.0
+  port: 9000
 
 database:
-  sqlite_db: storage-challenge.sqlite
+  dbms: sqlite
+  dsn: storage-challenge.sqlite
   max_idle_conns: 3
   max_open_conns: 10
   debug: false

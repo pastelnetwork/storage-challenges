@@ -5,9 +5,10 @@ remoter:
   port: 9000
 
 database:
-  sqlite_db: storage-challenge.sqlite
+  dbms: sqlite
+  dsn: storage-challenge.sqlite
   max_idle_conns: 3
   max_open_conns: 10
-  debug: true
+  debug: false
 
-masternode_id: jXlzy0y3L1gYG04DBEZSKI9KV5BReiRzrW5bDBls3M2gtS6R0Ed8MHrEW9hzzgi4aW1taxNzChPSHEgJY4aTbw
+masternode_id: jXAXIVujFd2urNsR3mF1YogDlSKaJVdNx2bXWEo3tZukaICMYKFMBoJUcLeWIHyA1NWXHU9rCp1I32OxY6bKcr

@@ -33,14 +33,22 @@ func (s *storageChallenge) VerifyStorageChallenge(ctx appcontext.Context, incomi
 	TimestampChallengeVerified := time.Now().Unix()
 	TimeVerifyStorageChallengeInSeconds := helper.ComputeElapsedTimeInSecondsBetweenTwoDatetimes(incomingChallengeMessage.TimestampChallengeSent, TimestampChallengeVerified)
 	var challengeStatus string
+	var analysisStatus = model.ALALYSIS_STATUS_TIMEOUT
+	defer func() {
+		s.saveChallengeAnalysis(ctx, incomingChallengeMessage.BlockHashWhenChallengeSent, incomingChallengeMessage.ChallengingMasternodeID, analysisStatus)
+	}()
+
 	if (incomingChallengeMessage.ChallengeResponseHash == challengeCorrectHash) && (TimeVerifyStorageChallengeInSeconds <= float64(s.storageChallengeExpiredAsSeconds)) {
 		challengeStatus = model.Status_SUCCEEDED
+		analysisStatus = model.ANALYSIS_STATUS_CORRECT
 		log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Debug("Masternode " + incomingChallengeMessage.RespondingMasternodeID + " correctly responded in " + fmt.Sprint(TimeVerifyStorageChallengeInSeconds) + " seconds to a storage challenge for file " + incomingChallengeMessage.FileHashToChallenge)
 	} else if incomingChallengeMessage.ChallengeResponseHash == challengeCorrectHash {
 		challengeStatus = model.Status_FAILED_TIMEOUT
+		analysisStatus = model.ALALYSIS_STATUS_TIMEOUT
 		log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Debug("Masternode " + incomingChallengeMessage.RespondingMasternodeID + " correctly responded in " + fmt.Sprint(TimeVerifyStorageChallengeInSeconds) + " seconds to a storage challenge for file " + incomingChallengeMessage.FileHashToChallenge + ", but was too slow so failed the challenge anyway!")
 	} else {
 		challengeStatus = model.Status_FAILED_INCORRECT_RESPONSE
+		analysisStatus = model.ALALYSIS_STATUS_INCORRECT
 		log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Debug("Masternode " + incomingChallengeMessage.RespondingMasternodeID + " failed by incorrectly responding to a storage challenge for file " + incomingChallengeMessage.FileHashToChallenge)
 	}
 
@@ -68,6 +76,7 @@ func (s *storageChallenge) VerifyStorageChallenge(ctx appcontext.Context, incomi
 		log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Error("could not update new storage challenge message in to database", actorLog.String("s.repository.UpsertStorageChallengeMessage", err.Error()))
 		return err
 	}
+
 	timeToRespondToStorageChallengeInSeconds := helper.ComputeElapsedTimeInSecondsBetweenTwoDatetimes(incomingChallengeMessage.TimestampChallengeSent, outgoingChallengeMessage.TimestampChallengeRespondedTo)
 	log.With(actorLog.String("ACTOR", "VerifyStorageChallenge")).Debug("Masternode " + outgoingChallengeMessage.RespondingMasternodeID + " responded to storage challenge for file hash " + outgoingChallengeMessage.FileHashToChallenge + " in " + fmt.Sprint(timeToRespondToStorageChallengeInSeconds) + " seconds!")
 
@@ -81,5 +90,27 @@ func (s *storageChallenge) validateVerifyingStorageChallengeIncommingData(incomi
 	if incomingChallengeMessage.MessageType != model.MessageType_STORAGE_CHALLENGE_RESPONSE_MESSAGE {
 		return fmt.Errorf("incorrect message type to verify storage challenge")
 	}
+	return nil
+}
+
+func (s *storageChallenge) saveChallengeAnalysis(ctx appcontext.Context, blockHash, challengingMasternodeID string, challengeAnalysisStatus model.ChallengeAnalysisStatus) error {
+	switch challengeAnalysisStatus {
+	case model.ANALYSYS_STATUS_ISSUED:
+		s.repository.IncreaseMasternodeTotalChallengesIssued(ctx, challengingMasternodeID)
+		s.repository.IncreasePastelBlockTotalChallengesIssued(ctx, blockHash)
+	case model.ANALYSIS_STATUS_RESPONDED_TO:
+		s.repository.IncreaseMasternodeTotalChallengesRespondedTo(ctx, challengingMasternodeID)
+		s.repository.IncreasePastelBlockTotalChallengesRespondedTo(ctx, blockHash)
+	case model.ANALYSIS_STATUS_CORRECT:
+		s.repository.IncreaseMasternodeTotalChallengesCorrect(ctx, challengingMasternodeID)
+		s.repository.IncreasePastelBlockTotalChallengesCorrect(ctx, blockHash)
+	case model.ALALYSIS_STATUS_INCORRECT:
+		s.repository.IncreaseMasternodeTotalChallengesIncorrect(ctx, challengingMasternodeID)
+		s.repository.IncreasePastelBlockTotalChallengesIncorrect(ctx, blockHash)
+	case model.ALALYSIS_STATUS_TIMEOUT:
+		s.repository.IncreaseMasternodeTotalChallengesTimeout(ctx, challengingMasternodeID)
+		s.repository.IncreasePastelBlockTotalChallengesTimeout(ctx, blockHash)
+	}
+
 	return nil
 }

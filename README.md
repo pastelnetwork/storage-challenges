@@ -27,13 +27,6 @@ Specify where the config.yaml placed in by set the env STORAGE_CHALLENGE_CONFIG,
 
 ## start debug nodes
 
-```
-cd test_nodes
-```
-
-- update pastel client mock in test_nodes/mock_pastel_client.go to matches your test cases
-- update database dummy data in test_nodes/migations.go to matches your test cases
-
 - build:
 
 ```

@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -12,7 +13,8 @@ import (
 var s Store
 
 type Config struct {
-	SQLiteDB     string `mapstructure:"sqlite_db"`
+	DBMS         string `mapstructure:"dbms"`
+	DSN          string `mapstructure:"dsn"`
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
 	MaxOpenConns int    `mapstructure:"max_open_conns"`
 	Debug        bool   `mapstructure:"debug,omitempty"`
@@ -31,7 +33,15 @@ func (s *store) GetDB() *gorm.DB {
 }
 
 func NewStore(c Config) (Store, error) {
-	db, err := gorm.Open(sqlite.Open(c.SQLiteDB), &gorm.Config{SkipDefaultTransaction: true, CreateBatchSize: 200})
+	var db *gorm.DB
+	var err error
+	switch c.DBMS {
+	case "postgres":
+		db, err = gorm.Open(postgres.Open(c.DSN), &gorm.Config{SkipDefaultTransaction: true, CreateBatchSize: 200})
+	default:
+		// sqlite
+		db, err = gorm.Open(sqlite.Open(c.DSN), &gorm.Config{SkipDefaultTransaction: true, CreateBatchSize: 200})
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +63,11 @@ func NewStore(c Config) (Store, error) {
 	sqlDB.SetConnMaxLifetime(maxLifeTime)
 
 	if c.Debug {
-		db.Config.Logger = logger.Default.LogMode(logger.Info)
+		db.Logger.LogMode(logger.Info)
 	}
 	s = &store{db}
 
-	log.Println("CONNECTED TO SQLITE DB", c)
+	log.Println("CONNECTED TO DB", c)
 	return s, nil
 }
 

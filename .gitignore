@@ -3,5 +3,6 @@
 test_nodes/storage-challenge*
 storage-challenges
 test_symbol_files
+sample_raptorq_symbol_files
 
 vendor

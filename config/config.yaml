@@ -5,7 +5,8 @@ remoter:
   port: 9001
 
 database:
-  sqlite_db: test_nodes/storage-challenge.sqlite
+  dbms: sqlite
+  dsn: storage-challenge.sqlite
   max_idle_conns: 3
   max_open_conns: 10
   debug: true
