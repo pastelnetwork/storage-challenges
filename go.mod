@@ -6,7 +6,6 @@ require (
 	github.com/AsynkronIT/goconsole v0.0.0-20160504192649-bfa12eebf716
 	github.com/AsynkronIT/protoactor-go v0.0.0-20211018041209-5fdd594ca443
 	github.com/gogo/protobuf v1.3.2
-	github.com/karrick/godirwalk v1.16.1
 	github.com/mkmik/argsort v1.1.0
 	github.com/pastelnetwork/gonode/common v0.0.0
 	github.com/pastelnetwork/gonode/pastel v0.0.0
@@ -16,6 +15,7 @@ require (
 	google.golang.org/api v0.59.0
 	google.golang.org/genproto v0.0.0-20211027162914-98a5263abeca
 	google.golang.org/grpc v1.41.0
+	gorm.io/driver/postgres v1.2.2
 	gorm.io/driver/sqlite v1.2.3
 	gorm.io/gorm v1.22.2
 )
@@ -32,6 +32,14 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
+	github.com/jackc/pgconn v1.10.0 // indirect
+	github.com/jackc/pgio v1.0.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.1.1 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
+	github.com/jackc/pgtype v1.8.1 // indirect
+	github.com/jackc/pgx/v4 v4.13.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.2 // indirect
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629 // indirect

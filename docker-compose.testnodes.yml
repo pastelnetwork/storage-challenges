@@ -1,0 +1,146 @@
+version: "3.9"
+
+services:
+  node0:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node0/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9000:9000
+
+  node1:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node1/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9001:9000
+
+  node2:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node2/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files_41:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files_41:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9002:9000
+
+  node3:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node3/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files_87:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files_87:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9003:9000
+
+  node4:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node4/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files_47:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files_47:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9004:9000
+
+  node5:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node5/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files_29:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files_29:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9005:9000
+
+  node6:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node6/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9006:9000
+
+  node7:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node7/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9007:9000
+
+  node8:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node8/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9008:9000
+
+  node9:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node9/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9009:9000
+
+  node10:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node10/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9010:9000
+
+  node11:
+    image: sc
+    volumes:
+      - ./test_nodes/storage-challenge.sqlite:/storage-challenge.sqlite
+      - ./test_nodes/node11/config.yaml:/src/config.yaml
+      - ./test_nodes/sample_raptorq_symbol_files:/sample_raptorq_symbol_files
+      - ./test_nodes/incremental_raptorq_symbol_files:/incremental_raptorq_symbol_files
+    environment:
+      - STORAGE_CHALLENGE_CONFIG=/src
+    ports:
+      - 9011:9000

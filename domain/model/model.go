@@ -14,6 +14,16 @@ var (
 	Status_FAILED_INCORRECT_RESPONSE = dto.Status_FAILED_INCORRECT_RESPONSE.String()
 )
 
+type ChallengeAnalysisStatus int
+
+const (
+	ANALYSYS_STATUS_ISSUED ChallengeAnalysisStatus = iota
+	ANALYSIS_STATUS_RESPONDED_TO
+	ANALYSIS_STATUS_CORRECT
+	ALALYSIS_STATUS_INCORRECT
+	ALALYSIS_STATUS_TIMEOUT
+)
+
 type ChallengeMessage struct {
 	MessageID                     string
 	MessageType                   string

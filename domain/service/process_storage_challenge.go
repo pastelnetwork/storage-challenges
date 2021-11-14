@@ -27,6 +27,12 @@ func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incom
 		return err
 	}
 
+	analysisStatus := model.ALALYSIS_STATUS_TIMEOUT
+
+	defer func() {
+		s.saveChallengeAnalysis(ctx, incomingChallengeMessage.BlockHashWhenChallengeSent, incomingChallengeMessage.ChallengingMasternodeID, analysisStatus)
+	}()
+
 	filePath, err := s.repository.GetFilePathFromFileHash(ctx, incomingChallengeMessage.FileHashToChallenge)
 	if err != nil {
 		log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Error("could not get symbol file path from file hash", actorLog.String("s.repository.GetFilePathFromFileHash", err.Error()))
@@ -66,6 +72,7 @@ func (s *storageChallenge) ProcessStorageChallenge(ctx appcontext.Context, incom
 		log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Error("could not update new storage challenge message in to database", actorLog.String("s.repository.UpsertStorageChallengeMessage", err.Error()))
 		return err
 	}
+	analysisStatus = model.ANALYSIS_STATUS_RESPONDED_TO
 	timeToRespondToStorageChallengeInSeconds := helper.ComputeElapsedTimeInSecondsBetweenTwoDatetimes(incomingChallengeMessage.TimestampChallengeSent, outgoingChallengeMessage.TimestampChallengeRespondedTo)
 	log.With(actorLog.String("ACTOR", "ProcessStorageChallenge")).Debug("Masternode " + outgoingChallengeMessage.RespondingMasternodeID + " responded to storage challenge for file hash " + outgoingChallengeMessage.FileHashToChallenge + " in " + fmt.Sprint(timeToRespondToStorageChallengeInSeconds) + " seconds!")
 

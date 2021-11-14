@@ -22,33 +22,15 @@ type storageChallengeActor struct {
 
 func (s *storageChallengeActor) Receive(actorCtx actor.Context) {
 	// Begin transaction, inject to context to go through main process
-	var dbTx = s.db.GetDB().Begin()
-	var commit bool
-	defer func() {
-		if !commit {
-			dbTx.Rollback()
-			return
-		}
-		dbTx.Commit()
-	}()
 
-	var ctx = appcontext.FromContext(context.Background()).WithActorContext(actorCtx).WithDBTx(dbTx)
+	var ctx = appcontext.FromContext(context.Background()).WithActorContext(actorCtx).WithDBTx(s.db.GetDB())
 	switch msg := actorCtx.Message().(type) {
 	case *dto.GenerateStorageChallengeRequest:
-		_, err := s.GenerateStorageChallenges(ctx, msg)
-		if err == nil {
-			commit = true
-		}
+		s.GenerateStorageChallenges(ctx, msg)
 	case *dto.StorageChallengeRequest:
-		_, err := s.StorageChallenge(ctx, msg)
-		if err == nil {
-			commit = true
-		}
+		s.StorageChallenge(ctx, msg)
 	case *dto.VerifyStorageChallengeRequest:
-		_, err := s.VerifyStorageChallenge(ctx, msg)
-		if err == nil {
-			commit = true
-		}
+		s.VerifyStorageChallenge(ctx, msg)
 	default:
 		log.Printf("Action not handled %#v", msg)
 		// TODO: response with unhandled notice

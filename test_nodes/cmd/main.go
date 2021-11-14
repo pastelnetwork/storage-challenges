@@ -41,11 +41,11 @@ func main() {
 		WithServerSecureCreds(credentials.NewServerCreds(pastelClient, &alts.SecInfo{PastelID: "mock pastel id", PassPhrase: "mock passphrase", Algorithm: "mock algorithm"})))
 	remoter.Start()
 	defer remoter.GracefulStop()
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
 
 	var blockCount int32 = 1
-	for ; blockCount < 3; blockCount++ {
+	for ; blockCount <= 100; blockCount++ {
 		<-ticker.C
 		if err = testnodes.AddPastelBlock(blockCount, db); err != nil {
 			log.Panicf("could not add new pastel block to database: %v", err)
@@ -54,6 +54,12 @@ func main() {
 		if err = testnodes.AddNIncrementalMasternodesAndKIncrementalSymbolFiles(2, 60, db); err != nil {
 			log.Panicf("could not add new incremental masternodes and symbol files to database: %v", err)
 			return
+		}
+		if blockCount%5 == 0 {
+			if err = testnodes.RemoveMasternodesAndSymbolFiles(db); err != nil {
+				log.Panicf("could not delete existing masternodes and symbol files from database: %v", err)
+				return
+			}
 		}
 		sliceOfMasternodes := testnodes.GetMasternodes(db)
 		sliceOfMasternodeIDs := make([]string, len(sliceOfMasternodes))
