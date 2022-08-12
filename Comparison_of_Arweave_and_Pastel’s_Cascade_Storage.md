@@ -120,7 +120,7 @@ Importantly, any successful attempts to attack the network would have to be gene
 
 ## Using Tricks to Get Undue Influence Over the Network
 
-One of Arweave’s big ideas is to use game theory, where nodes make choices based on what makes the most sense financially. This exemplified in what Arweave calls the *Wildfire* scheme, described in the passage to follow from the Yellow Paper. What sounds like a good metaphor for ensuring efficient network operation suffers from an analogous problem to what we discussed in the previous section:
+One of Arweave’s big ideas is to use game theory, where nodes make choices based on what makes the most sense financially. This is exemplified in what Arweave calls the *Wildfire* scheme, described in the following passage from the Yellow Paper; What sounds like a good metaphor for ensuring efficient network operation suffers from an analogous problem to what we discussed in the previous section:
 
 *“In the wildfire mechanic, a form of AIIA game (see section 6), each node in the Arweave network ranks its peers based on two primary factors. Firstly, the peer's generosity - sending new transactions and blocks, secondly, the peer's responsiveness - responding promptly to requests for information, in a similar mechanism to Bittorrent's optimistic tit-for-tat algorithm. The node then gossips preferentially to higher-ranked peers. This allows a node to rationalise its bandwidth allocation. It also has the effect of promoting pro-social behaviour on the part of nodes generally, given the practical implications of how every peer interacts with every other peer.”*
 
