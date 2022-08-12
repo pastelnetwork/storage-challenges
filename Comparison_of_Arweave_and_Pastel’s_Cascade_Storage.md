@@ -89,7 +89,7 @@ OK, so why is this better than Arweave? Well, because Arweave uses an incentive 
 
 As Arweave explains in their [Yellow Paper](https://www.arweave.org/yellow-paper.pdf): 
 
-***“The PoA algorithm also incentives miners to store `rare' blocks more than it incentivizes them to store well-replicated blocks. This is because when a rare block is chosen, miners with access to it compete amongst a smaller number of miners in the PoW puzzle for the same level of reward. As a consequence of this, miners that prefer to store rarer blocks on average receive a greater*
+*“The PoA algorithm also incentives miners to store `rare' blocks more than it incentivizes them to store well-replicated blocks. This is because when a rare block is chosen, miners with access to it compete amongst a smaller number of miners in the PoW puzzle for the same level of reward. As a consequence of this, miners that prefer to store rarer blocks on average receive a greater*
 *reward over time, all else being equal.”*
 
 But suppose again that the Chinese government or similar state actor is trying to suppress a file it doesn’t like on Arweave. 
